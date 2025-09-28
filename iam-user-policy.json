@@ -1,0 +1,43 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "AllowECRAuth",
+            "Effect": "Allow",
+            "Action": [
+                "ecr:GetAuthorizationToken"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Sid": "AllowECRAccess",
+            "Effect": "Allow",
+            "Action": [
+                "ecr:GetDownloadUrlForLayer",
+                "ecr:BatchGetImage",
+                "ecr:BatchCheckLayerAvailability",
+                "ecr:PutImage",
+                "ecr:InitiateLayerUpload",
+                "ecr:UploadLayerPart",
+                "ecr:CompleteLayerUpload"
+            ],
+            "Resource": "arn:aws:ecr:ap-south-1:145065858967:repository/siddhant-strapi"
+        },
+        {
+            "Sid": "AllowTerraformAccess",
+            "Effect": "Allow",
+            "Action": [
+                "ec2:*",
+                "rds:*",
+                "elasticloadbalancing:*",
+                "ecs:*",
+                "iam:PassRole",
+                "iam:GetRole",
+                "s3:*",
+                "logs:*"
+            ],
+            "Resource": "*"
+        }
+    ]
+}
+
