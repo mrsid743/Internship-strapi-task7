@@ -3,7 +3,8 @@ resource "aws_lb" "strapi_alb" {
   internal           = false
   load_balancer_type = "application"
   security_groups    = [aws_security_group.alb.id]
-  subnets            = [aws_subnet.public_a.id, aws_subnet.public_b.id]
+  # Use all subnets from the Default VPC
+  subnets            = data.aws_subnets.default.ids
 
   enable_deletion_protection = false
 }
@@ -12,7 +13,7 @@ resource "aws_lb_target_group" "strapi_tg" {
   name        = "${var.project_name}-tg"
   port        = 1337
   protocol    = "HTTP"
-  vpc_id      = aws_vpc.main.id
+  vpc_id      = data.aws_vpc.default.id
   target_type = "ip"
 
   health_check {

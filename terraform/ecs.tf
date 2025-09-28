@@ -10,8 +10,11 @@ resource "aws_ecs_service" "strapi_service" {
   launch_type     = "FARGATE"
 
   network_configuration {
-    subnets         = [aws_subnet.private_a.id, aws_subnet.private_b.id]
+    # Use all subnets from the Default VPC
+    subnets         = data.aws_subnets.default.ids
     security_groups = [aws_security_group.ecs_service.id]
+    # Assign a public IP to the task so it can pull the image from ECR
+    assign_public_ip = true
   }
 
   load_balancer {
@@ -74,4 +77,3 @@ resource "aws_ecs_task_definition" "strapi_app" {
 resource "aws_cloudwatch_log_group" "ecs_logs" {
   name = "/ecs/${var.project_name}-logs"
 }
-
