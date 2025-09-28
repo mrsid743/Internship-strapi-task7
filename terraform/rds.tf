@@ -11,13 +11,12 @@ resource "aws_db_subnet_group" "strapi_db_subnet_group" {
 resource "aws_db_instance" "strapi_db" {
   allocated_storage      = 20
   engine                 = "postgres"
-  # --- FINAL VERSION BASED ON YOUR AWS CLI OUTPUT ---
   engine_version         = "16.3" 
   instance_class         = "db.t3.micro"
-  db_name                = "${var.project_name}db"
+  # --- FINAL FIX: Remove hyphens from the project name for the DB name ---
+  db_name                = "${replace(var.project_name, "-", "")}db"
   username               = "strapiadmin"
   password               = var.db_password
-  # --- UPDATED TO MATCH THE CORRECT MAJOR VERSION ---
   parameter_group_name   = "default.postgres16" 
   skip_final_snapshot    = true
   # Note: In a Default VPC, the database will be in a public subnet.
