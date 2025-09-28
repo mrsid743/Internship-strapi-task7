@@ -1,24 +1,33 @@
-# Using a Debian-based Node.js image for better compatibility with native modules
-FROM node:18
+# Dockerfile
 
-# Set the working directory
+# Build Stage
+FROM node:18-alpine AS build
+
 WORKDIR /opt/app
-
-# Copy package.json and package-lock.json
-COPY package*.json ./
-
-# Install dependencies
-# Using --no-optional to skip unnecessary dependencies and speed up the build
-RUN npm install --no-optional
-
-# Copy the rest of your Strapi application code
+COPY package.json package-lock.json ./
+RUN npm install --legacy-peer-deps
 COPY . .
-
-# Build the Strapi application for production
 RUN npm run build
 
-# Expose the port Strapi runs on
-EXPOSE 1337
+# Production Stage
+FROM node:18-alpine AS production
+WORKDIR /opt/app
 
-# Start the Strapi application
+# Copy production dependencies
+COPY --from=build /opt/app/package.json ./
+COPY --from=build /opt/app/package-lock.json ./
+RUN npm install --omit=dev --legacy-peer-deps
+
+# Copy the compiled admin panel (Corrected from 'dist' to 'build')
+# ---- THIS IS THE MAIN FIX ----
+COPY --from=build /opt/app/build ./build
+
+# Copy Strapi configuration and other necessary folders
+COPY --from=build /opt/app/config ./config
+COPY --from=build /opt/app/database ./database
+COPY --from=build /opt/app/public ./public
+COPY --from=build /opt/app/src ./src
+
+# Expose the Strapi port and start the application
+EXPOSE 1337
 CMD ["npm", "run", "start"]
