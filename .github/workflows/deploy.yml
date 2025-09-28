@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-  workflow_dispatch:
 
 env:
   AWS_REGION: ap-south-1
@@ -14,7 +13,10 @@ env:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    
+    permissions:
+      id-token: write # Required for OIDC if you switch back
+      contents: read  # Required for actions/checkout
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -30,38 +32,53 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
 
-      # --- THIS STEP IS UPDATED ---
-      # The docker build command now runs from the root directory.
       - name: Build, tag, and push image to Amazon ECR
         id: build-image
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f Dockerfile .
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+          echo "image_tag=$IMAGE_TAG" >> $GITHUB_OUTPUT
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
         with:
-          terraform_version: 1.2.8
+          terraform_version: 1.5.7
 
       - name: Terraform Init
-        id: init
         run: terraform init
         working-directory: ${{ env.TF_WORKING_DIR }}
 
       - name: Terraform Validate
-        id: validate
         run: terraform validate
         working-directory: ${{ env.TF_WORKING_DIR }}
 
-      - name: Terraform Apply
-        id: apply
+      - name: Terraform Plan
+        id: plan
         env:
-          TF_VAR_image_tag: ${{ github.sha }}
+          TF_VAR_image_tag: ${{ steps.build-image.outputs.image_tag }}
+          TF_VAR_ecr_repo_url: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}
           TF_VAR_db_password: ${{ secrets.DB_PASSWORD }}
+          TF_VAR_jwt_secret: ${{ secrets.JWT_SECRET }}
+          TF_VAR_admin_jwt_secret: ${{ secrets.ADMIN_JWT_SECRET }}
+          TF_VAR_api_token_salt: ${{ secrets.API_TOKEN_SALT }}
+          TF_VAR_app_keys: ${{ secrets.APP_KEYS }}
+        run: terraform plan -no-color
+        working-directory: ${{ env.TF_WORKING_DIR }}
+
+      - name: Terraform Apply
+        env:
+          # --- THIS IS THE CORRECTED BLOCK ---
+          # We must pass ALL secrets to the apply step as well.
+          TF_VAR_image_tag: ${{ steps.build-image.outputs.image_tag }}
+          TF_VAR_ecr_repo_url: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}
+          TF_VAR_db_password: ${{ secrets.DB_PASSWORD }}
+          TF_VAR_jwt_secret: ${{ secrets.JWT_SECRET }}
+          TF_VAR_admin_jwt_secret: ${{ secrets.ADMIN_JWT_SECRET }}
+          TF_VAR_api_token_salt: ${{ secrets.API_TOKEN_SALT }}
+          TF_VAR_app_keys: ${{ secrets.APP_KEYS }}
         run: terraform apply -auto-approve
         working-directory: ${{ env.TF_WORKING_DIR }}
 
