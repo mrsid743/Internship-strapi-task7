@@ -1,21 +1,20 @@
-# Dockerfile
-# Using the official Node.js 18 image
-FROM node:18-alpine
+# Using a Debian-based Node.js image for better compatibility with native modules
+FROM node:18
 
 # Set the working directory
 WORKDIR /opt/app
 
 # Copy package.json and package-lock.json
-COPY package.json ./
-COPY package-lock.json* ./
+COPY package*.json ./
 
 # Install dependencies
-RUN npm install
+# Using --no-optional to skip unnecessary dependencies and speed up the build
+RUN npm install --no-optional
 
 # Copy the rest of your Strapi application code
 COPY . .
 
-# Build the Strapi admin panel
+# Build the Strapi application for production
 RUN npm run build
 
 # Expose the port Strapi runs on
