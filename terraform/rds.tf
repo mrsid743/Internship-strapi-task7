@@ -1,37 +1,23 @@
-# rds.tf
-# Using random provider to generate a secure password
-resource "random_password" "db_password" {
-  length  = 16
-  special = true
-}
-
-# Database subnet group
-resource "aws_db_subnet_group" "main" {
+resource "aws_db_subnet_group" "strapi_db_subnet_group" {
   name       = "${var.project_name}-db-subnet-group"
-  subnet_ids = aws_subnet.private.*.id
+  subnet_ids = [aws_subnet.private_a.id, aws_subnet.private_b.id]
 
   tags = {
     Name = "${var.project_name}-db-subnet-group"
   }
 }
 
-# Create the RDS instance (PostgreSQL)
-resource "aws_db_instance" "main" {
-  identifier           = "${var.project_name}-db"
+resource "aws_db_instance" "strapi_db" {
   allocated_storage    = 20
-  storage_type         = "gp2"
   engine               = "postgres"
-  engine_version       = "14"
+  engine_version       = "14.5"
   instance_class       = "db.t3.micro"
-  db_name              = "strapidb"
-  username             = var.db_username
-  password             = var.db_password != "" ? var.db_password : random_password.db_password.result
-  db_subnet_group_name = aws_db_subnet_group.main.name
-  vpc_security_group_ids = [aws_security_group.rds.id]
+  db_name              = "${var.project_name}db" # e.g., strapi-ecs-appdb
+  username             = "strapiadmin"
+  password             = var.db_password
+  parameter_group_name = "default.postgres14"
   skip_final_snapshot  = true
   publicly_accessible  = false
-
-  tags = {
-    Name = "${var.project_name}-rds"
-  }
+  vpc_security_group_ids = [aws_security_group.db.id]
+  db_subnet_group_name = aws_db_subnet_group.strapi_db_subnet_group.name
 }
