@@ -11,12 +11,14 @@ resource "aws_db_subnet_group" "strapi_db_subnet_group" {
 resource "aws_db_instance" "strapi_db" {
   allocated_storage      = 20
   engine                 = "postgres"
-  engine_version         = "15.5" # <-- FINAL UPDATED VERSION
+  # --- FINAL, CORRECTED VERSION FOR MUMBAI REGION ---
+  engine_version         = "15.6" 
   instance_class         = "db.t3.micro"
   db_name                = "${var.project_name}db"
   username               = "strapiadmin"
   password               = var.db_password
-  parameter_group_name   = "default.postgres15" # <-- UPDATED to match version 15
+  # --- UPDATED TO MATCH THE CORRECT VERSION ---
+  parameter_group_name   = "default.postgres15" 
   skip_final_snapshot    = true
   # Note: In a Default VPC, the database will be in a public subnet.
   # Access is restricted by the security group.
