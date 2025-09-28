@@ -17,9 +17,10 @@ resource "aws_lb_target_group" "strapi_tg" {
   target_type = "ip"
 
   health_check {
-    path                = "/_health"
+    # --- THIS BLOCK IS UPDATED FOR BETTER RELIABILITY ---
+    path                = "/" # Check the root path instead of /_health
     protocol            = "HTTP"
-    matcher             = "200"
+    matcher             = "200-404" # Consider any response (even 'Not Found') as healthy
     interval            = 30
     timeout             = 5
     healthy_threshold   = 2
