@@ -1,30 +1,29 @@
-# --- FINAL FIX: Corrected the typo in both role names ---
+# This file provides the specific names of your existing IAM roles.
+# The typo with the trailing underscore has been removed.
+
 ecs_task_execution_role_name = "ec2_ecr_full_access_role"
 ecs_task_role_name           = "ec2_ecr_full_access_role"
 ```
 
-### Just in Case: Verify the "Lock" (The Trust Relationship)
+### Why This Fixes the Error
 
-The error also mentions verifying the trust relationship. Let's make sure the "lock" is configured correctly on your IAM role.
+The `terraform.tfvars` file is not a script; it's a simple data file. It has a very strict format:
 
-1.  In the AWS Console, go to **IAM** -> **Roles**.
-2.  Click on the `ec2_ecr_full_access_role` role.
-3.  Click on the **"Trust relationships"** tab.
-4.  Click **"Edit trust policy"**.
+* **Allowed:** `variable_name = "value"`
+* **Allowed:** `# This is a comment`
+* **Not Allowed:** Any other text, backticks, single quotes for strings, etc.
 
-The policy JSON **must** include `ecs-tasks.amazonaws.com`. It should look exactly like this:
+The corrected file I've provided adheres to this strict format.
 
-```json
-{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Effect": "Allow",
-            "Principal": {
-                "Service": "ecs-tasks.amazonaws.com"
-            },
-            "Action": "sts:AssumeRole"
-        }
-    ]
-}
+### Your Final Steps to a Live Application
+
+1.  **Perform the Cleanup:** Before running the workflow, please make sure you have deleted the leftover resources (Security Groups, Target Group, etc.) from the previous failed runs. This is crucial for a clean start.
+2.  **Update the `terraform.tfvars` file:** Replace its content with the corrected code above.
+3.  **Commit and Push:**
+
+    ```bash
+    git add terraform/terraform.tfvars
+    git commit -m "fix(terraform): Correct syntax in tfvars file"
+    git push origin main
+    
 
