@@ -1,20 +1,14 @@
-# alb.tf
-
-# Create the Application Load Balancer
-resource "aws_lb" "main" {
+resource "aws_lb" "strapi_alb" {
   name               = "${var.project_name}-alb"
   internal           = false
   load_balancer_type = "application"
   security_groups    = [aws_security_group.alb.id]
-  subnets            = aws_subnet.public.*.id
+  subnets            = [aws_subnet.public_a.id, aws_subnet.public_b.id]
 
-  tags = {
-    Name = "${var.project_name}-alb"
-  }
+  enable_deletion_protection = false
 }
 
-# Create the target group for the Strapi service
-resource "aws_lb_target_group" "strapi" {
+resource "aws_lb_target_group" "strapi_tg" {
   name        = "${var.project_name}-tg"
   port        = 1337
   protocol    = "HTTP"
@@ -22,7 +16,7 @@ resource "aws_lb_target_group" "strapi" {
   target_type = "ip"
 
   health_check {
-    path                = "/_health" # Strapi has a default health check endpoint
+    path                = "/_health"
     protocol            = "HTTP"
     matcher             = "200"
     interval            = 30
@@ -32,14 +26,14 @@ resource "aws_lb_target_group" "strapi" {
   }
 }
 
-# Create the listener for the ALB
-resource "aws_lb_listener" "http" {
-  load_balancer_arn = aws_lb.main.arn
+resource "aws_lb_listener" "strapi_listener" {
+  load_balancer_arn = aws_lb.strapi_alb.arn
   port              = "80"
   protocol          = "HTTP"
 
   default_action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.strapi.arn
+    target_group_arn = aws_lb_target_group.strapi_tg.arn
   }
 }
+

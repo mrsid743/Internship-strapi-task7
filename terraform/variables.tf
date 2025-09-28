@@ -1,61 +1,67 @@
-# variables.tf
-
 variable "aws_region" {
-  description = "The AWS region where resources will be created."
+  description = "The AWS region to deploy resources in."
   type        = string
   default     = "ap-south-1"
 }
 
 variable "project_name" {
-  description = "The name of the project, used for tagging resources."
+  description = "The name of the project, used for naming resources."
   type        = string
   default     = "strapi-ecs-app"
 }
 
-variable "ecr_repository_name" {
-  description = "The name of the pre-existing ECR repository."
+variable "ecr_repo_url" {
+  description = "The URL of the ECR repository."
   type        = string
-  default     = "siddhant-strapi"
 }
 
 variable "image_tag" {
-  description = "The tag of the Docker image to deploy. This is passed from the CI/CD pipeline."
+  description = "The tag of the Docker image to deploy."
   type        = string
-  default     = "latest" # Default value, will be overridden by GitHub Actions
+  default     = "latest"
 }
 
-variable "db_username" {
-  description = "The master username for the RDS database."
-  type        = string
-  default     = "strapiadmin"
-}
-
-variable "db_password" {
-  description = "The master password for the RDS database."
-  type        = string
-  sensitive   = true
-  # Note: A randomly generated password is used by default in rds.tf.
-  # Set this variable only if you need a specific password.
-}
-
-variable "ec2_key_name" {
-  description = "The name of the EC2 key pair to allow SSH access."
-  type        = string
-  default     = "strapi-mumbai-key"
-}
-
+# IAM Role Names for existing roles
 variable "ecs_task_execution_role_name" {
-  description = "The exact name of the pre-existing IAM role for ECS task execution."
+  description = "The name of the existing IAM role for ECS task execution."
   type        = string
-  default     = "internship-strapi-execution-role"
-  # This role MUST have the "AmazonECSTaskExecutionRolePolicy" attached.
-  # IMPORTANT: Override this default value in a .tfvars file with your actual role name.
+  default     = "ec2_ecr_full_access_role"
 }
 
 variable "ecs_task_role_name" {
-  description = "The exact name of the pre-existing IAM role for the ECS task itself."
+  description = "The name of the existing IAM role for the ECS task itself."
   type        = string
   default     = "internship-strapi-task-role"
-  # IMPORTANT: Override this default value in a .tfvars file with your actual role name.
+}
+
+# Secrets
+variable "db_password" {
+  description = "The password for the RDS database master user."
+  type        = string
+  sensitive   = true
+}
+
+variable "jwt_secret" {
+  description = "The JWT secret for Strapi."
+  type        = string
+  sensitive   = true
+}
+
+variable "admin_jwt_secret" {
+  description = "The Admin JWT secret for Strapi."
+  type        = string
+  sensitive   = true
+}
+
+variable "api_token_salt" {
+  description = "The API token salt for Strapi."
+  type        = string
+  sensitive   = true
+}
+
+variable "app_keys" {
+  description = "The app keys for Strapi."
+  type        = string
+  sensitive   = true
 }
 

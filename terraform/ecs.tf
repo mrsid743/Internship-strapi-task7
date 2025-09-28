@@ -30,7 +30,6 @@ resource "aws_ecs_task_definition" "strapi_app" {
   cpu                      = "1024"
   memory                   = "2048"
   
-  # --- THESE LINES ARE NOW CORRECTED ---
   execution_role_arn       = data.aws_iam_role.ecs_task_execution_role.arn
   task_role_arn            = data.aws_iam_role.ecs_task_role.arn
 
@@ -75,5 +74,4 @@ resource "aws_ecs_task_definition" "strapi_app" {
 resource "aws_cloudwatch_log_group" "ecs_logs" {
   name = "/ecs/${var.project_name}-logs"
 }
-
 
