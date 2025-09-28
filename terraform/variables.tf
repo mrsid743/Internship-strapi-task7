@@ -44,3 +44,18 @@ variable "ec2_key_name" {
   default     = "strapi-mumbai-key"
 }
 
+variable "ecs_task_execution_role_name" {
+  description = "The exact name of the pre-existing IAM role for ECS task execution."
+  type        = string
+  default     = "internship-strapi-execution-role"
+  # This role MUST have the "AmazonECSTaskExecutionRolePolicy" attached.
+  # IMPORTANT: Override this default value in a .tfvars file with your actual role name.
+}
+
+variable "ecs_task_role_name" {
+  description = "The exact name of the pre-existing IAM role for the ECS task itself."
+  type        = string
+  default     = "internship-strapi-task-role"
+  # IMPORTANT: Override this default value in a .tfvars file with your actual role name.
+}
+

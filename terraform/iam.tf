@@ -1,29 +1,17 @@
 # iam.tf
 
-# IAM role for ECS tasks to have permissions to access other AWS services.
-resource "aws_iam_role" "ecs_task_role" {
-  name               = "${var.project_name}-ecs-task-role"
-  assume_role_policy = data.aws_iam_policy_document.ecs_task_assume_role.json
+# --- ECS Task Execution Role ---
+# This data source looks up the existing IAM role that ECS uses to pull images and write logs.
+# You must provide the name of this role in your variables.
+data "aws_iam_role" "ecs_task_execution_role" {
+  name = var.ecs_task_execution_role_name
 }
 
-data "aws_iam_policy_document" "ecs_task_assume_role" {
-  statement {
-    actions = ["sts:AssumeRole"]
-    principals {
-      type        = "Service"
-      identifiers = ["ecs-tasks.amazonaws.com"]
-    }
-  }
+# --- ECS Task Role (Optional but good practice) ---
+# This data source looks up the existing IAM role that the Strapi application itself uses.
+# This role would grant permissions to other AWS services (e.g., S3).
+# You must provide the name of this role in your variables.
+data "aws_iam_role" "ecs_task_role" {
+  name = var.ecs_task_role_name
 }
 
-# IAM role for the ECS agent to make calls to AWS APIs on your behalf.
-resource "aws_iam_role" "ecs_task_execution_role" {
-  name               = "${var.project_name}-ecs-task-execution-role"
-  assume_role_policy = data.aws_iam_policy_document.ecs_task_assume_role.json
-}
-
-# Attaching the AWS managed policy for ECS task execution.
-resource "aws_iam_role_policy_attachment" "ecs_task_execution_role_policy" {
-  role       = aws_iam_role.ecs_task_execution_role.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
-}
