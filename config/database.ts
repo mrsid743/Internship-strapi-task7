@@ -1,13 +1,38 @@
-module.exports = ({ env }) => ({
-  connection: {
-    client: 'postgres',
+import path from 'path';
+
+export default ({ env }) => {
+  // =================================================
+  // Production (PostgreSQL) Environment
+  // =================================================
+  if (env('NODE_ENV') === 'production') {
+    return {
+      connection: {
+        client: 'postgres',
+        connection: {
+          host: env('DATABASE_HOST'),
+          port: env.int('DATABASE_PORT', 5432),
+          database: env('DATABASE_NAME'),
+          user: env('DATABASE_USERNAME'),
+          password: env('DATABASE_PASSWORD'),
+          // --- THIS IS THE FINAL FIX ---
+          // Force SSL connection to the database
+          ssl: { rejectUnauthorized: false },
+        },
+        debug: false,
+      },
+    };
+  }
+
+  // =================================================
+  // Development (SQLite) Environment
+  // =================================================
+  return {
     connection: {
-      host: env('DATABASE_HOST', '127.0.0.1'),
-      port: env.int('DATABASE_PORT', 5432),
-      database: env('DATABASE_NAME', 'strapi'),
-      user: env('DATABASE_USERNAME', 'postgres'),
-      password: env('DATABASE_PASSWORD', 'yourpassword'),
-      ssl: env.bool('DATABASE_SSL', false),
+      client: 'sqlite',
+      connection: {
+        filename: path.join(__dirname, '..', '..', '.tmp/data.db'),
+      },
+      useNullAsDefault: true,
     },
-  },
-});
+  };
+};
