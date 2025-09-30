@@ -32,9 +32,9 @@ resource "aws_ecs_task_definition" "strapi_app" {
   requires_compatibilities = ["FARGATE"]
   cpu                      = "1024"
   memory                   = "2048"
-  
-  execution_role_arn       = data.aws_iam_role.ecs_task_execution_role.arn
-  task_role_arn            = data.aws_iam_role.ecs_task_role.arn
+
+  execution_role_arn = data.aws_iam_role.ecs_task_execution_role.arn
+  task_role_arn      = data.aws_iam_role.ecs_task_role.arn
 
   container_definitions = jsonencode([
     {
@@ -65,15 +65,12 @@ resource "aws_ecs_task_definition" "strapi_app" {
       logConfiguration = {
         logDriver = "awslogs"
         options = {
-          "awslogs-group"         = aws_cloudwatch_log_group.ecs_logs.name
+          # This now correctly points to the log group defined in cloudwatch.tf
+          "awslogs-group"         = aws_cloudwatch_log_group.main.name
           "awslogs-region"        = var.aws_region
           "awslogs-stream-prefix" = "ecs"
         }
       }
     }
   ])
-}
-
-resource "aws_cloudwatch_log_group" "ecs_logs" {
-  name = "/ecs/${var.project_name}-logs"
 }
