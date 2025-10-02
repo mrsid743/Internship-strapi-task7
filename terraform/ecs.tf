@@ -7,13 +7,24 @@ resource "aws_ecs_service" "strapi_service" {
   cluster         = aws_ecs_cluster.strapi_cluster.id
   task_definition = aws_ecs_task_definition.strapi_app.arn
   desired_count   = 1
-  launch_type     = "FARGATE"
+  # launch_type     = "FARGATE" # <-- This line is removed.
+
+  # --- THIS BLOCK IS ADDED TO USE FARGATE SPOT ---
+  # This tells ECS to use the Fargate Spot capacity provider for the tasks.
+  capacity_provider_strategy {
+    capacity_provider = "FARGATE_SPOT"
+    weight            = 1 # Use 100% Fargate Spot
+  }
+  # --- END OF NEW BLOCK ---
+
+  # This setting ensures that if a Spot task is interrupted, ECS will
+  # immediately try to launch a new one to maintain the desired count.
+  enable_ecs_managed_tags = true
+  propagate_tags          = "SERVICE"
 
   network_configuration {
-    # Use all subnets from the Default VPC
     subnets         = data.aws_subnets.default.ids
     security_groups = [aws_security_group.ecs_service.id]
-    # Assign a public IP to the task so it can pull the image from ECR
     assign_public_ip = true
   }
 
@@ -65,7 +76,6 @@ resource "aws_ecs_task_definition" "strapi_app" {
       logConfiguration = {
         logDriver = "awslogs"
         options = {
-          # This now correctly points to the log group defined in cloudwatch.tf
           "awslogs-group"         = aws_cloudwatch_log_group.main.name
           "awslogs-region"        = var.aws_region
           "awslogs-stream-prefix" = "ecs"
@@ -74,3 +84,4 @@ resource "aws_ecs_task_definition" "strapi_app" {
     }
   ])
 }
+
