@@ -60,11 +60,7 @@ jobs:
       - name: Create new task definition with updated image
         id: new-task-def
         run: |
-          # Use jq to update the image in the containerDefinitions
-          # This command replaces the image URI for the container named 'strapi-container'
-          # IMPORTANT: Make sure the 'name' here matches the name of the container in your task definition
           jq '.containerDefinitions[0].image = "${{ env.ECR_IMAGE_URI }}"' task-definition.json > new-task-definition.json
-          # Remove fields that are not allowed in register-task-definition
           jq 'del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)' new-task-definition.json > final-task-definition.json
           
           NEW_TASK_INFO=$(aws ecs register-task-definition --cli-input-json file://final-task-definition.json)
@@ -74,7 +70,7 @@ jobs:
       - name: Create CodeDeploy deployment
         id: deploy
         run: |
-          # Create a dynamic appspec.json for CodeDeploy
+          # Create the AppSpec content file
           cat > appspec.json <<EOF
           {
             "version": 1,
@@ -95,10 +91,26 @@ jobs:
           }
           EOF
 
+          # Use jq to properly format the AppSpec content as a valid JSON string
+          ESCAPED_APPSPEC_CONTENT=$(jq -R -s '.' < appspec.json)
+
+          # Create the full JSON input for the create-deployment command
+          cat > deployment-input.json <<EOF
+          {
+              "applicationName": "${{ env.CODEDEPLOY_APP_NAME }}",
+              "deploymentGroupName": "${{ env.CODEDEPLOY_DEPLOYMENT_GROUP_NAME }}",
+              "revision": {
+                  "revisionType": "AppSpecContent",
+                  "appSpecContent": {
+                      "content": $ESCAPED_APPSPEC_CONTENT
+                  }
+              }
+          }
+          EOF
+
+          # Start the deployment using the generated input file
           DEPLOYMENT_ID=$(aws deploy create-deployment \
-            --application-name ${{ env.CODEDEPLOY_APP_NAME }} \
-            --deployment-group-name ${{ env.CODEDEPLOY_DEPLOYMENT_GROUP_NAME }} \
-            --revision "{\"revisionType\":\"AppSpecContent\",\"appSpecContent\":{\"content\": \"$(cat appspec.json | tr -d '\n' | tr -d '\r')\"}}" \
+            --cli-input-json file://deployment-input.json \
             --query '[deploymentId]' --output text)
           
           echo "DEPLOYMENT_ID=$DEPLOYMENT_ID" >> $GITHUB_ENV
@@ -109,5 +121,4 @@ jobs:
           echo "Waiting for deployment to complete..."
           aws deploy wait deployment-successful --deployment-id ${{ env.DEPLOYMENT_ID }}
           echo "Deployment successful!"
-          # If the 'wait' command fails, the workflow will fail, indicating a deployment issue.
-          # CodeDeploy will automatically handle rollback based on your deployment group's configuration.
+
