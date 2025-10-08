@@ -1,28 +1,37 @@
-name: Deploy Strapi to ECS
+# This GitHub Actions workflow handles the deployment of a Dockerized application
+# to Amazon ECS using a blue/green strategy managed by AWS CodeDeploy.
 
+name: Deploy to AWS ECS via CodeDeploy
+
+# Trigger the workflow on a push to the main branch
 on:
   push:
     branches:
       - main
 
+# Environment variables available to all jobs and steps in the workflow
 env:
-  AWS_REGION: ap-south-1
-  ECR_REPOSITORY: siddhant-strapi
-  TF_WORKING_DIR: ./terraform
+  AWS_REGION: ap-south-1                   # AWS Region (Mumbai)
+  ECR_REPOSITORY: siddhant-strapi   # Replace with your ECR repository name
+  ECS_CLUSTER_NAME: strapi-bluegreen-cluster         # Replace with your ECS cluster name
+  ECS_SERVICE_NAME: strapi-bluegreen-strapi-app         # Replace with your ECS service name
+  ECS_TASK_DEFINITION_FAMILY: strapi-task  # The family of your task definition
+  CODEDEPLOY_APP_NAME: strapi-bluegreen-strapi-app # Replace with your CodeDeploy application name
+  CODEDEPLOY_DEPLOYMENT_GROUP_NAME: strapi-bluegreen-deployment-group # Replace with your CodeDeploy deployment group
 
 jobs:
   deploy:
+    name: Build, Push, and Deploy
     runs-on: ubuntu-latest
     permissions:
-      id-token: write # Required for OIDC if you switch back
-      contents: read  # Required for actions/checkout
+      contents: read # Allow the job to read the repository content
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -30,55 +39,75 @@ jobs:
 
       - name: Login to Amazon ECR
         id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v1
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set image tag to commit SHA
+        id: image
+        run: echo "IMAGE_TAG=$(echo $GITHUB_SHA | cut -c1-8)" >> $GITHUB_ENV
 
       - name: Build, tag, and push image to Amazon ECR
-        id: build-image
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          IMAGE_TAG: ${{ github.sha }}
         run: |
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-          echo "image_tag=$IMAGE_TAG" >> $GITHUB_OUTPUT
+          docker build -t ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }} .
+          docker push ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}
+          echo "ECR_IMAGE_URI=${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}" >> $GITHUB_ENV
 
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2
-        with:
-          terraform_version: 1.5.7
+      - name: Download existing task definition
+        id: task-def
+        run: |
+          aws ecs describe-task-definition --task-definition ${{ env.ECS_TASK_DEFINITION_FAMILY }} --query taskDefinition > task-definition.json
+          echo "TASK_DEF_ARN=$(jq -r '.taskDefinitionArn' task-definition.json)" >> $GITHUB_ENV
 
-      - name: Terraform Init
-        run: terraform init
-        working-directory: ${{ env.TF_WORKING_DIR }}
+      - name: Create new task definition with updated image
+        id: new-task-def
+        run: |
+          # Use jq to update the image in the containerDefinitions
+          # This command replaces the image URI for the container named 'strapi-container'
+          # IMPORTANT: Make sure the 'name' here matches the name of the container in your task definition
+          jq '.containerDefinitions[0].image = "${{ env.ECR_IMAGE_URI }}"' task-definition.json > new-task-definition.json
+          # Remove fields that are not allowed in register-task-definition
+          jq 'del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)' new-task-definition.json > final-task-definition.json
+          
+          NEW_TASK_INFO=$(aws ecs register-task-definition --cli-input-json file://final-task-definition.json)
+          NEW_TASK_DEF_ARN=$(echo "$NEW_TASK_INFO" | jq -r '.taskDefinition.taskDefinitionArn')
+          echo "NEW_TASK_DEF_ARN=$NEW_TASK_DEF_ARN" >> $GITHUB_ENV
 
-      - name: Terraform Validate
-        run: terraform validate
-        working-directory: ${{ env.TF_WORKING_DIR }}
+      - name: Create CodeDeploy deployment
+        id: deploy
+        run: |
+          # Create a dynamic appspec.json for CodeDeploy
+          cat > appspec.json <<EOF
+          {
+            "version": 1,
+            "Resources": [
+              {
+                "TargetService": {
+                  "Type": "AWS::ECS::Service",
+                  "Properties": {
+                    "TaskDefinition": "${{ env.NEW_TASK_DEF_ARN }}",
+                    "LoadBalancerInfo": {
+                       "ContainerName": "strapi-container",
+                       "ContainerPort": 1337
+                    }
+                  }
+                }
+              }
+            ]
+          }
+          EOF
 
-      - name: Terraform Plan
-        id: plan
-        env:
-          TF_VAR_image_tag: ${{ steps.build-image.outputs.image_tag }}
-          TF_VAR_ecr_repo_url: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}
-          TF_VAR_db_password: ${{ secrets.DB_PASSWORD }}
-          TF_VAR_jwt_secret: ${{ secrets.JWT_SECRET }}
-          TF_VAR_admin_jwt_secret: ${{ secrets.ADMIN_JWT_SECRET }}
-          TF_VAR_api_token_salt: ${{ secrets.API_TOKEN_SALT }}
-          TF_VAR_app_keys: ${{ secrets.APP_KEYS }}
-        run: terraform plan -no-color
-        working-directory: ${{ env.TF_WORKING_DIR }}
+          DEPLOYMENT_ID=$(aws deploy create-deployment \
+            --application-name ${{ env.CODEDEPLOY_APP_NAME }} \
+            --deployment-group-name ${{ env.CODEDEPLOY_DEPLOYMENT_GROUP_NAME }} \
+            --revision "{\"revisionType\":\"AppSpecContent\",\"appSpecContent\":{\"content\": \"$(cat appspec.json | tr -d '\n' | tr -d '\r')\"}}" \
+            --query '[deploymentId]' --output text)
+          
+          echo "DEPLOYMENT_ID=$DEPLOYMENT_ID" >> $GITHUB_ENV
 
-      - name: Terraform Apply
-        env:
-          # --- THIS IS THE CORRECTED BLOCK ---
-          # We must pass ALL secrets to the apply step as well.
-          TF_VAR_image_tag: ${{ steps.build-image.outputs.image_tag }}
-          TF_VAR_ecr_repo_url: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}
-          TF_VAR_db_password: ${{ secrets.DB_PASSWORD }}
-          TF_VAR_jwt_secret: ${{ secrets.JWT_SECRET }}
-          TF_VAR_admin_jwt_secret: ${{ secrets.ADMIN_JWT_SECRET }}
-          TF_VAR_api_token_salt: ${{ secrets.API_TOKEN_SALT }}
-          TF_VAR_app_keys: ${{ secrets.APP_KEYS }}
-        run: terraform apply -auto-approve
-        working-directory: ${{ env.TF_WORKING_DIR }}
-
+      - name: Monitor deployment status
+        run: |
+          echo "Deployment started with ID: ${{ env.DEPLOYMENT_ID }}"
+          echo "Waiting for deployment to complete..."
+          aws deploy wait deployment-successful --deployment-id ${{ env.DEPLOYMENT_ID }}
+          echo "Deployment successful!"
+          # If the 'wait' command fails, the workflow will fail, indicating a deployment issue.
+          # CodeDeploy will automatically handle rollback based on your deployment group's configuration.

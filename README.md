@@ -11,7 +11,8 @@ This repository documents the process of setting up, containerizing, deploying, 
 * [Task 4: Deploying to AWS EC2 with Terraform](https://www.google.com/search?q=%23-task-4-deploying-to-aws-ec2-with-terraform)  
 * [Task 5: Automating Deployment with GitHub Actions (CI/CD)](https://www.google.com/search?q=%23-task-5-automating-deployment-with-github-actions-cicd)  
 * [Task 6: Deploying to AWS ECS Fargate with Terraform](https://www.google.com/search?q=%23-task-6-deploying-to-aws-ecs-fargate-with-terraform)  
-* [Task 7: Fully Automated CI/CD for ECS Fargate](https://www.google.com/search?q=%23-task-7-fully-automated-cicd-for-ecs-fargate)
+* [Task 7: Fully Automated CI/CD for ECS Fargate](https://www.google.com/search?q=%23-task-7-fully-automated-cicd-for-ecs-fargate)  
+* [Task 8: Add CloudWatch Monitoring to ECS Deployment](https://www.google.com/search?q=%23-task-8-add-cloudwatch-monitoring-to-ecs-deployment)
 
 ## **🛠️ Prerequisites**
 
@@ -27,8 +28,6 @@ Before you begin, ensure you have the following installed and configured:
 * **AWS CLI**
 
 ## **✅ Task 1: Local Strapi Setup**
-
-**Objective:** Clone the official Strapi repository, run it locally, and create a sample content type.
 
 ### **Steps**
 
@@ -63,8 +62,6 @@ Before you begin, ensure you have the following installed and configured:
    git push \-u origin main
 
 ## **✅ Task 2: Dockerizing the Strapi Application**
-
-**Objective:** Create a Dockerfile to containerize the Strapi application for portable and consistent environments.
 
 ### **Steps**
 
@@ -107,8 +104,6 @@ Before you begin, ensure you have the following installed and configured:
    You should now be able to access your Strapi application at http://localhost:1337.
 
 ## **✅ Task 3: Multi-Container Setup with Docker Compose**
-
-**Objective:** Set up a complete development environment using Docker Compose, including Strapi, a PostgreSQL database, and an Nginx reverse proxy.
 
 ### **Project Structure**
 
@@ -215,8 +210,6 @@ Before you begin, ensure you have the following installed and configured:
 
 ## **✅ Task 4: Deploying to AWS EC2 with Terraform**
 
-**Objective:** Automate the provisioning of an AWS EC2 instance and deploy the Dockerized Strapi application using Terraform.
-
 ### **Steps**
 
 1. Push Your Docker Image to Docker Hub  
@@ -304,8 +297,6 @@ Before you begin, ensure you have the following installed and configured:
    After terraform apply completes, it will output the public IP address of the EC2 instance. Access your Strapi app by navigating to http://\<your-ec2-public-ip\>.
 
 ## **✅ Task 5: Automating Deployment with GitHub Actions (CI/CD)**
-
-**Objective:** Create a full CI/CD pipeline. The CI workflow builds and pushes a Docker image on every push to main, and the CD workflow uses Terraform to deploy the new image to EC2 when manually triggered.
 
 ### **Prerequisites**
 
@@ -433,8 +424,6 @@ resource "aws\_instance" "strapi\_server" {
 Now, your complete CI/CD pipeline is set up\! 🚀
 
 ## **✅ Task 6: Deploying to AWS ECS Fargate with Terraform**
-
-**Objective:** Deploy a scalable Strapi application on AWS using ECS Fargate, with all infrastructure managed by Terraform.
 
 ### **Steps**
 
@@ -659,8 +648,6 @@ Now, your complete CI/CD pipeline is set up\! 🚀
 
 ## **✅ Task 7: Fully Automated CI/CD for ECS Fargate**
 
-**Objective:** Create a seamless, fully automated CI/CD pipeline using only GitHub Actions. On every push to the main branch, the workflow will build a new Docker image, push it to ECR, and update the ECS service to deploy the new version without any manual intervention.
-
 ### **Prerequisites**
 
 * Ensure your ECS Fargate infrastructure from **Task 6** is deployed and running.  
@@ -748,3 +735,108 @@ jobs:
 ### **Verification**
 
 To verify, simply make a small change to your Strapi application, commit it, and push it to the main branch. Go to the "Actions" tab in your GitHub repository to watch the workflow run. Once it completes, your changes will be live at the ALB URL provided by your Terraform output.
+
+## **✅ Task 8: Add CloudWatch Monitoring to ECS Deployment**
+
+**Objective:** Enhance the ECS Fargate deployment with robust monitoring and logging by integrating AWS CloudWatch. This will centralize application logs and provide visibility into key performance metrics.
+
+### **Prerequisites**
+
+* A functioning ECS Fargate deployment as set up in **Task 6**.  
+* Your Terraform code for the ECS infrastructure (ecs.tf).
+
+### **Steps**
+
+1. Update Terraform to Create a CloudWatch Log Group  
+   Add the following resource to your ecs.tf file. This creates a dedicated log group where all logs from your Strapi container will be sent.  
+   \# Add this to ecs.tf  
+   resource "aws\_cloudwatch\_log\_group" "strapi\_logs" {  
+     name \= "/ecs/strapi"
+
+     tags \= {  
+       Application \= "Strapi"  
+       Environment \= "Production"  
+     }  
+   }
+
+2. Update the ECS Task Definition to Send Logs  
+   Modify the aws\_ecs\_task\_definition resource in ecs.tf. Specifically, you need to add the logConfiguration block inside the container\_definitions. This tells the ECS agent to use the awslogs driver and send logs to the group you just created.  
+   \# Modify this existing resource in ecs.tf  
+   resource "aws\_ecs\_task\_definition" "strapi\_task" {  
+     family                   \= "strapi-task"  
+     network\_mode             \= "awsvpc"  
+     requires\_compatibilities \= \["FARGATE"\]  
+     cpu                      \= "256"  
+     memory                   \= "512"  
+     execution\_role\_arn       \= aws\_iam\_role.ecs\_task\_execution\_role.arn
+
+     container\_definitions \= jsonencode(\[  
+       {  
+         name      \= "strapi"  
+         image     \= "${aws\_ecr\_repository.strapi\_ecr\_repo.repository\_url}:latest"  
+         essential \= true  
+         portMappings \= \[  
+           {  
+             containerPort \= 1337  
+             hostPort      \= 1337  
+           }  
+         \]  
+         \# \--- Add this logConfiguration block \---  
+         logConfiguration \= {  
+           logDriver \= "awslogs"  
+           options \= {  
+             "awslogs-group"         \= aws\_cloudwatch\_log\_group.strapi\_logs.name  
+             "awslogs-region"        \= "us-east-1" \# Or your AWS region  
+             "awslogs-stream-prefix" \= "ecs"  
+           }  
+         }  
+         \# \------------------------------------  
+         environment \= \[  
+           { name \= "HOST", value \= "0.0.0.0" },  
+           { name \= "PORT", value \= "1337" }  
+         \]  
+       }  
+     \])  
+   }
+
+3. (Optional) Create a CloudWatch Alarm for High CPU  
+   To proactively monitor performance, you can add alarms. Add the following resource to ecs.tf to create an alarm that triggers if the average CPU utilization of the ECS service exceeds 75% for 5 minutes.  
+   \# Add this to ecs.tf for proactive monitoring  
+   resource "aws\_cloudwatch\_metric\_alarm" "high\_cpu\_alarm" {  
+     alarm\_name          \= "strapi-high-cpu-utilization"  
+     comparison\_operator \= "GreaterThanOrEqualToThreshold"  
+     evaluation\_periods  \= "1"  
+     metric\_name         \= "CPUUtilization"  
+     namespace           \= "AWS/ECS"  
+     period              \= "300" \# 5 minutes  
+     statistic           \= "Average"  
+     threshold           \= "75"  
+     alarm\_description   \= "This alarm triggers if the Strapi service CPU utilization is over 75%."
+
+     dimensions \= {  
+       ClusterName \= aws\_ecs\_cluster.strapi\_cluster.name  
+       ServiceName \= aws\_ecs\_service.strapi\_service.name  
+     }
+
+     \# In a real-world scenario, you would configure an action,  
+     \# like sending a notification to an SNS topic.  
+     \# alarm\_actions \= \[aws\_sns\_topic.your\_topic.arn\]  
+   }
+
+4. Apply and Verify the Monitoring Setup  
+   Run terraform apply to create the new CloudWatch resources and update your ECS task definition. Terraform will automatically register a new revision and trigger a service deployment.  
+   terraform plan  
+   terraform apply \--auto-approve
+
+### **How to View Logs and Metrics**
+
+* **To View Logs:**  
+  1. Go to the **AWS CloudWatch** console.  
+  2. In the navigation pane, click on **Log groups**.  
+  3. Find and click on the /ecs/strapi log group.  
+  4. You will see log streams from your running tasks. Click on one to view the application logs in real-time.  
+* **To View Metrics:**  
+  1. Go to the **AWS CloudWatch** console and click on **All metrics**.  
+  2. In the AWS/ECS namespace, select "Per-Service Metrics".  
+  3. Find metrics like CPUUtilization and MemoryUtilization for your cluster and service to view performance graphs.  
+  4. Alternatively, go to the **ECS** console, select your cluster, and click on the "Metrics" tab for a pre-built dashboard.

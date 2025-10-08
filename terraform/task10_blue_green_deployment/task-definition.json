@@ -1,0 +1,25 @@
+[
+    {
+        "name": "strapi-app-container",
+        "image": "145065858967.dkr.ecr.ap-south-1.amazonaws.com/siddhant-strapi:latest",
+        "cpu": 256,
+        "memory": 512,
+        "essential": true,
+        "portMappings": [
+            {
+                "containerPort": 1337,
+                "hostPort": 1337,
+                "protocol": "tcp"
+            }
+        ],
+        "logConfiguration": {
+            "logDriver": "awslogs",
+            "options": {
+                "awslogs-group": "/ecs/strapi-bluegreen-app",
+                "awslogs-region": "ap-south-1",
+                "awslogs-stream-prefix": "ecs"
+            }
+        }
+    }
+]
+
