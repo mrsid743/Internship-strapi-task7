@@ -3,28 +3,26 @@
 
 name: Deploy to AWS ECS via CodeDeploy
 
-# Trigger the workflow on a push to the main branch
 on:
   push:
     branches:
       - main
 
-# Environment variables available to all jobs and steps in the workflow
 env:
-  AWS_REGION: ap-south-1                   # AWS Region (Mumbai)
-  ECR_REPOSITORY: siddhant-strapi   # Replace with your ECR repository name
-  ECS_CLUSTER_NAME: strapi-bluegreen-cluster         # Replace with your ECS cluster name
-  ECS_SERVICE_NAME: strapi-bluegreen-strapi-app         # Replace with your ECS service name
-  ECS_TASK_DEFINITION_FAMILY: strapi-task  # The family of your task definition
-  CODEDEPLOY_APP_NAME: strapi-bluegreen-strapi-app # Replace with your CodeDeploy application name
-  CODEDEPLOY_DEPLOYMENT_GROUP_NAME: strapi-bluegreen-deployment-group # Replace with your CodeDeploy deployment group
+  AWS_REGION: ap-south-1
+  ECR_REPOSITORY: siddhant-strapi
+  ECS_CLUSTER_NAME: strapi-bluegreen-cluster
+  ECS_SERVICE_NAME: strapi-bluegreen-strapi-app
+  ECS_TASK_DEFINITION_FAMILY: strapi-bluegreen-strapi-app
+  CODEDEPLOY_APP_NAME: strapi-bluegreen-strapi-app
+  CODEDEPLOY_DEPLOYMENT_GROUP_NAME: strapi-bluegreen-deployment-group
 
 jobs:
   deploy:
     name: Build, Push, and Deploy
     runs-on: ubuntu-latest
     permissions:
-      contents: read # Allow the job to read the repository content
+      contents: read
 
     steps:
       - name: Checkout repository
@@ -81,7 +79,7 @@ jobs:
                   "Properties": {
                     "TaskDefinition": "${{ env.NEW_TASK_DEF_ARN }}",
                     "LoadBalancerInfo": {
-                       "ContainerName": "strapi-container",
+                       "ContainerName": "strapi-app-container",
                        "ContainerPort": 1337
                     }
                   }
@@ -91,10 +89,8 @@ jobs:
           }
           EOF
 
-          # Use jq to properly format the AppSpec content as a valid JSON string
           ESCAPED_APPSPEC_CONTENT=$(jq -R -s '.' < appspec.json)
 
-          # Create the full JSON input for the create-deployment command
           cat > deployment-input.json <<EOF
           {
               "applicationName": "${{ env.CODEDEPLOY_APP_NAME }}",
@@ -108,7 +104,6 @@ jobs:
           }
           EOF
 
-          # Start the deployment using the generated input file
           DEPLOYMENT_ID=$(aws deploy create-deployment \
             --cli-input-json file://deployment-input.json \
             --query '[deploymentId]' --output text)
