@@ -3,7 +3,7 @@ Resources:
   - TargetService:
       Type: AWS::ECS::Service
       Properties:
-        TaskDefinition: "arn:aws:ecs:ap-south-1:145065858967:task-definition/strapi-bluegreen-strapi-app:13"
+        TaskDefinition: "arn:aws:ecs:ap-south-1:145065858967:task-definition/strapi-bluegreen-strapi-app:17"
         LoadBalancerInfo:
           ContainerName: "strapi-app-container"
           ContainerPort: 1337
