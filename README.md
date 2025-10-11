@@ -1,10 +1,13 @@
+[README.md](https://github.com/user-attachments/files/22798043/README.md)
 # **Strapi Internship Tasks: From Local Setup to Automated Deployment**
+
+[GitHub Repository](https://github.com/mrsid743/Internship-strapi-task7)
 
 This repository documents the process of setting up, containerizing, deploying, and automating a Strapi application. The project covers local setup, Dockerization, orchestration with Docker Compose, infrastructure provisioning on AWS with Terraform, and setting up a CI/CD pipeline using GitHub Actions.
 
 ## **📋 Table of Contents**
 
-* [Prerequisites](https://www.google.com/search?q=%23-prerequisites)  
+* [Prerequisites](https://www.google.com/search?q=%23%EF%B8%8F-prerequisites)  
 * [Task 1: Local Strapi Setup](https://www.google.com/search?q=%23-task-1-local-strapi-setup)  
 * [Task 2: Dockerizing the Strapi Application](https://www.google.com/search?q=%23-task-2-dockerizing-the-strapi-application)  
 * [Task 3: Multi-Container Setup with Docker Compose](https://www.google.com/search?q=%23-task-3-multi-container-setup-with-docker-compose)  
@@ -12,20 +15,23 @@ This repository documents the process of setting up, containerizing, deploying, 
 * [Task 5: Automating Deployment with GitHub Actions (CI/CD)](https://www.google.com/search?q=%23-task-5-automating-deployment-with-github-actions-cicd)  
 * [Task 6: Deploying to AWS ECS Fargate with Terraform](https://www.google.com/search?q=%23-task-6-deploying-to-aws-ecs-fargate-with-terraform)  
 * [Task 7: Fully Automated CI/CD for ECS Fargate](https://www.google.com/search?q=%23-task-7-fully-automated-cicd-for-ecs-fargate)  
-* [Task 8: Add CloudWatch Monitoring to ECS Deployment](https://www.google.com/search?q=%23-task-8-add-cloudwatch-monitoring-to-ecs-deployment)
+* [Task 8: Add CloudWatch Monitoring to ECS Deployment](https://www.google.com/search?q=%23-task-8-add-cloudwatch-monitoring-to-ecs-deployment)  
+* [Task 9: Optimize Costs with Fargate Spot](https://www.google.com/search?q=%23-task-9-optimize-costs-with-fargate-spot)  
+* [Task 10: Configure AWS Resources for Blue/Green Deployment](https://www.google.com/search?q=%23-task-10-configure-aws-resources-for-bluegreen-deployment)  
+* [Task 11: Set up a GitHub Actions Workflow for Blue/Green Deployment](https://www.google.com/search?q=%23-task-11-set-up-a-github-actions-workflow-for-bluegreen-deployment)
 
 ## **🛠️ Prerequisites**
 
 Before you begin, ensure you have the following installed and configured:
 
-* **Node.js** (v18 or later)  
-* **npm** or **yarn**  
-* **Docker** and **Docker Compose**  
-* **Terraform**  
-* An **AWS Account** with programmatic access (Access Key ID and Secret Access Key)  
-* A **Docker Hub Account**  
-* A **GitHub Account**  
-* **AWS CLI**
+* Node.js (v18 or later)  
+* npm or yarn  
+* Docker and Docker Compose  
+* Terraform  
+* An AWS Account with programmatic access (Access Key ID and Secret Access Key)  
+* A Docker Hub Account  
+* A GitHub Account  
+* AWS CLI
 
 ## **✅ Task 1: Local Strapi Setup**
 
@@ -48,7 +54,7 @@ Before you begin, ensure you have the following installed and configured:
    Once the server starts, navigate to http://localhost:1337/admin. You'll be prompted to create the first administrator account. Fill in the details to access the Admin Panel.  
 5. **Create a Sample Content Type**  
    * In the Admin Panel, go to **Content-Type Builder** \> **Create new collection type**.  
-   * Enter a **Display name** (e.g., "Article").  
+   * Enter a Display name (e.g., "Article").  
    * Add fields like title (Text) and content (Rich Text).  
    * Click **Save** and wait for the server to restart.  
    * You can now add content to your new "Article" collection type\!  
@@ -118,11 +124,7 @@ Before you begin, ensure you have the following installed and configured:
 
 ### **Steps**
 
-1. Create a Docker Network (Optional, as Docker Compose can do this automatically)  
-   This ensures all containers can communicate with each other using their service names.  
-   docker network create strapi-net
-
-2. Create docker-compose.yml  
+1. Create docker-compose.yml  
    This file defines the services: strapi, postgres, and nginx.  
    version: '3.8'
 
@@ -182,7 +184,7 @@ Before you begin, ensure you have the following installed and configured:
      strapi-net:  
        driver: bridge
 
-3. Configure Nginx as a Reverse Proxy  
+2. Configure Nginx as a Reverse Proxy  
    Create nginx/nginx.conf to forward requests from port 80 to the Strapi container on port 1337\.  
    server {  
        listen 80;  
@@ -197,12 +199,12 @@ Before you begin, ensure you have the following installed and configured:
        }  
    }
 
-4. **Create .env file** for credentials.  
+3. **Create .env file for credentials.**  
    DATABASE\_NAME=strapi\_db  
    DATABASE\_USERNAME=strapi\_user  
    DATABASE\_PASSWORD=strapi\_password
 
-5. Run the Environment  
+4. Run the Environment  
    From your project root, run:  
    docker-compose up \--build
 
@@ -300,11 +302,12 @@ Before you begin, ensure you have the following installed and configured:
 
 ### **Prerequisites**
 
-* Add the following secrets to your GitHub repository (**Settings \> Secrets and variables \> Actions**):  
-  * AWS\_ACCESS\_KEY\_ID: Your AWS access key.  
-  * AWS\_SECRET\_ACCESS\_KEY: Your AWS secret key.  
-  * DOCKERHUB\_USERNAME: Your Docker Hub username.  
-  * DOCKERHUB\_TOKEN: Your Docker Hub access token.
+Add the following secrets to your GitHub repository (**Settings \> Secrets and variables \> Actions**):
+
+* AWS\_ACCESS\_KEY\_ID: Your AWS access key.  
+* AWS\_SECRET\_ACCESS\_KEY: Your AWS secret key.  
+* DOCKERHUB\_USERNAME: Your Docker Hub username.  
+* DOCKERHUB\_TOKEN: Your Docker Hub access token.
 
 ### **1\. CI Workflow: Build and Push Docker Image**
 
@@ -404,17 +407,17 @@ resource "aws\_instance" "strapi\_server" {
   \# ... (ami, instance\_type, etc.) ...
 
   user\_data \= \<\<-EOF  
-              \#\!/bin/bash  
-              sudo yum update \-y  
-              sudo yum install \-y docker  
-              sudo service docker start  
-              sudo usermod \-a \-G docker ec2-user  
-              docker pull \<your-dockerhub-username\>/strapi-app:${var.image\_tag}  
-              \# Stop and remove old container if it exists  
-              docker stop $(docker ps \-q \--filter "ancestor=\<your-dockerhub-username\>/strapi-app") || true  
-              docker rm $(docker ps \-aq \--filter "ancestor=\<your-dockerhub-username\>/strapi-app") || true  
-              docker run \-d \-p 80:1337 \--restart always \<your-dockerhub-username\>/strapi-app:${var.image\_tag}  
-              EOF  
+                \#\!/bin/bash  
+                sudo yum update \-y  
+                sudo yum install \-y docker  
+                sudo service docker start  
+                sudo usermod \-a \-G docker ec2-user  
+                docker pull \<your-dockerhub-username\>/strapi-app:${var.image\_tag}  
+                \# Stop and remove old container if it exists  
+                docker stop $(docker ps \-q \--filter "ancestor=\<your-dockerhub-username\>/strapi-app") || true  
+                docker rm $(docker ps \-aq \--filter "ancestor=\<your-dockerhub-username\>/strapi-app") || true  
+                docker run \-d \-p 80:1337 \--restart always \<your-dockerhub-username\>/strapi-app:${var.image\_tag}  
+                EOF  
     
   \# ... (tags) ...  
 }
@@ -440,27 +443,27 @@ Now, your complete CI/CD pipeline is set up\! 🚀
 
 2. Build and Push the Docker Image to ECR  
    Before creating the rest of the infrastructure, you must push your application's Docker image to the new ECR repository.  
-   * First, apply the Terraform configuration to create the repository:  
-     terraform init  
-     terraform apply \-target=aws\_ecr\_repository.strapi\_ecr\_repo \--auto-approve
+   First, apply the Terraform configuration to create the repository:  
+   terraform init  
+   terraform apply \-target=aws\_ecr\_repository.strapi\_ecr\_repo \--auto-approve
 
-   * Next, run the following commands to authenticate Docker with ECR, then build, tag, and push your image.  
-     \# Set environment variables for your AWS Account ID and Region  
-     export AWS\_ACCOUNT\_ID=$(aws sts get-caller-identity \--query Account \--output text)  
-     export AWS\_REGION=us-east-1 \# Or your preferred region  
-     export ECR\_REPO\_URI="${AWS\_ACCOUNT\_ID}.dkr.ecr.${AWS\_REGION}\[.amazonaws.com/strapi-app\](https://.amazonaws.com/strapi-app)"
+   Next, run the following commands to authenticate Docker with ECR, then build, tag, and push your image.  
+   \# Set environment variables for your AWS Account ID and Region  
+   export AWS\_ACCOUNT\_ID=$(aws sts get-caller-identity \--query Account \--output text)  
+   export AWS\_REGION=us-east-1 \# Or your preferred region  
+   export ECR\_REPO\_URI="${AWS\_ACCOUNT\_ID}.dkr.ecr.${AWS\_REGION}\[.amazonaws.com/strapi-app\](https://.amazonaws.com/strapi-app)"
 
-     \# 1\. Authenticate Docker to your ECR registry  
-     aws ecr get-login-password \--region $AWS\_REGION | docker login \--username AWS \--password-stdin $ECR\_REPO\_URI
+   \# 1\. Authenticate Docker to your ECR registry  
+   aws ecr get-login-password \--region $AWS\_REGION | docker login \--username AWS \--password-stdin $ECR\_REPO\_URI
 
-     \# 2\. Build the Docker image (ensure Dockerfile is in the current directory)  
-     docker build \-t strapi-app .
+   \# 2\. Build the Docker image (ensure Dockerfile is in the current directory)  
+   docker build \-t strapi-app .
 
-     \# 3\. Tag the image for ECR  
-     docker tag strapi-app:latest $ECR\_REPO\_URI:latest
+   \# 3\. Tag the image for ECR  
+   docker tag strapi-app:latest $ECR\_REPO\_URI:latest
 
-     \# 4\. Push the image to ECR  
-     docker push $ECR\_REPO\_URI:latest
+   \# 4\. Push the image to ECR  
+   docker push $ECR\_REPO\_URI:latest
 
 3. Write Terraform Code for ECS Fargate Infrastructure  
    Create a new file, ecs.tf, to define the cluster, load balancer, security groups, task definition, and service. This configuration uses the default VPC for simplicity.  
@@ -650,7 +653,7 @@ Now, your complete CI/CD pipeline is set up\! 🚀
 
 ### **Prerequisites**
 
-* Ensure your ECS Fargate infrastructure from **Task 6** is deployed and running.  
+* Ensure your ECS Fargate infrastructure from Task 6 is deployed and running.  
 * Add the following secrets to your GitHub repository (**Settings \> Secrets and variables \> Actions**):  
   * AWS\_ACCESS\_KEY\_ID: Your AWS access key.  
   * AWS\_SECRET\_ACCESS\_KEY: Your AWS secret key.
@@ -667,12 +670,12 @@ on:
       \- main
 
 env:  
-  AWS\_REGION: us-east-1                   \# Your AWS Region  
-  ECR\_REPOSITORY: strapi-app               \# Your ECR repository name from Task 6  
-  ECS\_SERVICE: strapi-service              \# Your ECS service name from ecs.tf  
-  ECS\_CLUSTER: strapi-cluster              \# Your ECS cluster name from ecs.tf  
-  ECS\_TASK\_DEFINITION: strapi-task         \# Your ECS task definition family from ecs.tf  
-  CONTAINER\_NAME: strapi                   \# The container name defined in your task definition
+  AWS\_REGION: us-east-1              \# Your AWS Region  
+  ECR\_REPOSITORY: strapi-app         \# Your ECR repository name from Task 6  
+  ECS\_SERVICE: strapi-service        \# Your ECS service name from ecs.tf  
+  ECS\_CLUSTER: strapi-cluster        \# Your ECS cluster name from ecs.tf  
+  ECS\_TASK\_DEFINITION: strapi-task   \# Your ECS task definition family from ecs.tf  
+  CONTAINER\_NAME: strapi             \# The container name defined in your task definition
 
 jobs:  
   deploy:  
@@ -726,11 +729,11 @@ jobs:
 
 ### **How It Works**
 
-1. **Trigger:** The workflow starts automatically whenever you push a commit to the main branch.  
-2. **AWS & ECR Login:** It securely logs into your AWS account and ECR registry using the provided GitHub Secrets.  
-3. **Build & Push:** It builds a new Docker image from your Dockerfile and tags it with the unique commit SHA. This ensures every version is traceable. The new image is then pushed to your ECR repository.  
-4. **Update Task Definition:** The workflow fetches the latest *active* task definition for your service. It then creates a new revision of this definition in memory, replacing the old image URI with the URI of the new image it just pushed.  
-5. **Deploy New Revision:** Finally, it registers this new task definition with ECS and updates the strapi-service, which triggers a new deployment. ECS handles the rolling update gracefully, draining old tasks and starting new ones with the updated image. The wait-for-service-stability: true flag ensures the workflow only succeeds if the new version deploys successfully.
+* **Trigger**: The workflow starts automatically whenever you push a commit to the main branch.  
+* **AWS & ECR Login**: It securely logs into your AWS account and ECR registry using the provided GitHub Secrets.  
+* **Build & Push**: It builds a new Docker image from your Dockerfile and tags it with the unique commit SHA. This ensures every version is traceable. The new image is then pushed to your ECR repository.  
+* **Update Task Definition**: The workflow fetches the latest active task definition for your service. It then creates a new revision of this definition in memory, replacing the old image URI with the URI of the new image it just pushed.  
+* **Deploy New Revision**: Finally, it registers this new task definition with ECS and updates the strapi-service, which triggers a new deployment. ECS handles the rolling update gracefully, draining old tasks and starting new ones with the updated image. The wait-for-service-stability: true flag ensures the workflow only succeeds if the new version deploys successfully.
 
 ### **Verification**
 
@@ -738,11 +741,9 @@ To verify, simply make a small change to your Strapi application, commit it, and
 
 ## **✅ Task 8: Add CloudWatch Monitoring to ECS Deployment**
 
-**Objective:** Enhance the ECS Fargate deployment with robust monitoring and logging by integrating AWS CloudWatch. This will centralize application logs and provide visibility into key performance metrics.
-
 ### **Prerequisites**
 
-* A functioning ECS Fargate deployment as set up in **Task 6**.  
+* A functioning ECS Fargate deployment as set up in Task 6\.  
 * Your Terraform code for the ECS infrastructure (ecs.tf).
 
 ### **Steps**
@@ -830,13 +831,414 @@ To verify, simply make a small change to your Strapi application, commit it, and
 
 ### **How to View Logs and Metrics**
 
-* **To View Logs:**  
-  1. Go to the **AWS CloudWatch** console.  
+* **To View Logs**:  
+  1. Go to the AWS CloudWatch console.  
   2. In the navigation pane, click on **Log groups**.  
   3. Find and click on the /ecs/strapi log group.  
   4. You will see log streams from your running tasks. Click on one to view the application logs in real-time.  
-* **To View Metrics:**  
-  1. Go to the **AWS CloudWatch** console and click on **All metrics**.  
+* **To View Metrics**:  
+  1. Go to the AWS CloudWatch console and click on **All metrics**.  
   2. In the AWS/ECS namespace, select "Per-Service Metrics".  
   3. Find metrics like CPUUtilization and MemoryUtilization for your cluster and service to view performance graphs.  
-  4. Alternatively, go to the **ECS** console, select your cluster, and click on the "Metrics" tab for a pre-built dashboard.
+  4. Alternatively, go to the ECS console, select your cluster, and click on the "Metrics" tab for a pre-built dashboard.
+
+## **✅ Task 9: Optimize Costs with Fargate Spot**
+
+**Objective**: Modify the existing ECS Fargate deployment to use Fargate Spot instances for running tasks, significantly reducing compute costs. We will configure a capacity provider strategy that prioritizes Spot while keeping on-demand Fargate as a fallback for reliability.
+
+### **Prerequisites**
+
+* A fully functional ECS Fargate deployment as configured in Task 8\.
+
+### **Steps**
+
+1. Update the ECS Cluster to Use Capacity Providers  
+   Modify the aws\_ecs\_cluster resource in your ecs.tf file and add a new aws\_ecs\_cluster\_capacity\_providers resource. This defines Fargate and Fargate Spot as the available capacity providers for the cluster.  
+   \# Modify this existing resource in ecs.tf  
+   resource "aws\_ecs\_cluster" "strapi\_cluster" {  
+     name \= "strapi-cluster"
+
+     setting {  
+       name  \= "containerInsights"  
+       value \= "enabled"  
+     }  
+   }
+
+   \# Add this new resource to ecs.tf  
+   resource "aws\_ecs\_cluster\_capacity\_providers" "strapi\_cluster\_providers" {  
+     cluster\_name \= aws\_ecs\_cluster.strapi\_cluster.name
+
+     capacity\_providers \= \["FARGATE", "FARGATE\_SPOT"\]
+
+     default\_capacity\_provider\_strategy {  
+       capacity\_provider \= "FARGATE\_SPOT"  
+       weight            \= 1  
+     }  
+   }
+
+2. Update the ECS Service to Use the Spot Strategy  
+   Now, modify the aws\_ecs\_service resource in ecs.tf. The key change is to remove the launch\_type argument and replace it with a capacity\_provider\_strategy. This tells the service to prioritize Fargate Spot.  
+   \# Modify this existing resource in ecs.tf  
+   resource "aws\_ecs\_service" "strapi\_service" {  
+     name            \= "strapi-service"  
+     cluster         \= aws\_ecs\_cluster.strapi\_cluster.id  
+     task\_definition \= aws\_ecs\_task\_definition.strapi\_task.arn  
+     desired\_count   \= 1  
+     \# REMOVE the launch\_type \= "FARGATE" line
+
+     \# ADD a capacity provider strategy block to prioritize SPOT  
+     capacity\_provider\_strategy {  
+       capacity\_provider \= "FARGATE\_SPOT"  
+       weight            \= 1  
+     }
+
+     network\_configuration {  
+       subnets         \= data.aws\_subnets.default.ids  
+       security\_groups \= \[aws\_security\_group.fargate\_sg.id\]  
+       assign\_public\_ip \= true  
+     }
+
+     load\_balancer {  
+       target\_group\_arn \= aws\_lb\_target\_group.strapi\_tg.arn  
+       container\_name   \= "strapi"  
+       container\_port   \= 1337  
+     }
+
+     depends\_on \= \[aws\_lb\_listener.strapi\_listener, aws\_ecs\_cluster\_capacity\_providers.strapi\_cluster\_providers\]  
+   }
+
+   **Note on Strategy**: This simple strategy tells ECS to always try to place tasks on FARGATE\_SPOT first. If Spot capacity is unavailable, ECS will automatically use on-demand FARGATE because it is registered with the cluster.  
+3. Apply and Verify the Changes  
+   Run terraform apply to update your ECS cluster and service configuration.  
+   terraform plan  
+   terraform apply \--auto-approve
+
+### **How to Verify**
+
+1. Navigate to the AWS ECS Console and select your cluster.  
+2. Click on your strapi-service.  
+3. Go to the **Tasks** tab.  
+4. Click on a running task and look at the **Capacity provider** field in the configuration details. It should now show FARGATE\_SPOT.
+
+## **✅ Task 10: Configure AWS resources for Blue/Green deployment of the Strapi app**
+
+This task modifies our existing Terraform setup to support a blue/green deployment strategy managed by AWS CodeDeploy. This approach minimizes downtime and risk by shifting traffic incrementally to a new version of the application.
+
+### **Steps**
+
+1. Update the ALB and Create a Second Target Group  
+   In ecs.tf, we need two target groups (blue and green) and a second listener rule for test traffic. The production listener will point to the blue group initially.  
+   \# Modify ecs.tf
+
+   \# Blue Target Group (current production)  
+   resource "aws\_lb\_target\_group" "strapi\_blue\_tg" {  
+     name        \= "strapi-blue-tg"  
+     port        \= 1337  
+     protocol    \= "HTTP"  
+     vpc\_id      \= data.aws\_vpc.default.id  
+     target\_type \= "ip"  
+     health\_check {  
+       path \= "/\_health"  
+     }  
+   }
+
+   \# Green Target Group (for new versions)  
+   resource "aws\_lb\_target\_group" "strapi\_green\_tg" {  
+     name        \= "strapi-green-tg"  
+     port        \= 1337  
+     protocol    \= "HTTP"  
+     vpc\_id      \= data.aws\_vpc.default.id  
+     target\_type \= "ip"  
+     health\_check {  
+       path \= "/\_health"  
+     }  
+   }
+
+   \# Production Listener (Port 80\) \-\> Points to Blue TG  
+   resource "aws\_lb\_listener" "strapi\_prod\_listener" {  
+     load\_balancer\_arn \= aws\_lb.strapi\_alb.arn  
+     port              \= 80  
+     protocol          \= "HTTP"
+
+     default\_action {  
+       type             \= "forward"  
+       target\_group\_arn \= aws\_lb\_target\_group.strapi\_blue\_tg.arn  
+     }  
+   }
+
+   \# Test Listener (e.g., Port 8080\) \-\> Points to Green TG for testing before traffic shift  
+   resource "aws\_lb\_listener" "strapi\_test\_listener" {  
+     load\_balancer\_arn \= aws\_lb.strapi\_alb.arn  
+     port              \= 8080  
+     protocol          \= "HTTP"
+
+     default\_action {  
+       type             \= "forward"  
+       target\_group\_arn \= aws\_lb\_target\_group.strapi\_green\_tg.arn  
+     }  
+   }
+
+2. Update the ECS Service for CodeDeploy  
+   Modify the aws\_ecs\_service resource in ecs.tf to hand over deployment control to CodeDeploy.  
+   \# Modify this existing resource in ecs.tf  
+   resource "aws\_ecs\_service" "strapi\_service" {  
+     name            \= "strapi-service"  
+     cluster         \= aws\_ecs\_cluster.strapi\_cluster.id  
+     task\_definition \= aws\_ecs\_task\_definition.strapi\_task.arn  
+     desired\_count   \= 1  
+     launch\_type     \= "FARGATE"
+
+     \# This block tells ECS that CodeDeploy will manage deployments  
+     deployment\_controller {  
+       type \= "CODE\_DEPLOY"  
+     }
+
+     network\_configuration {  
+       subnets         \= data.aws\_subnets.default.ids  
+       security\_groups \= \[aws\_security\_group.fargate\_sg.id\]  
+       assign\_public\_ip \= true  
+     }
+
+     \# The load\_balancer block is now managed by CodeDeploy's deployment group  
+     \# and can be removed from here to avoid conflicts.  
+     \# We keep a placeholder here during initial creation.  
+     load\_balancer {  
+        target\_group\_arn \= aws\_lb\_target\_group.strapi\_blue\_tg.arn  
+        container\_name   \= "strapi"  
+        container\_port   \= 1337  
+     }
+
+     \# We no longer depend on the listener directly  
+     depends\_on \= \[aws\_lb.strapi\_alb\]  
+   }
+
+3. Create CodeDeploy Resources and IAM Role  
+   Create a new file, codedeploy.tf, to define the CodeDeploy application, deployment group, and the necessary IAM role.  
+   \# Create codedeploy.tf
+
+   \# IAM Role for CodeDeploy  
+   resource "aws\_iam\_role" "codedeploy\_role" {  
+     name \= "ecs-codedeploy-role"
+
+     assume\_role\_policy \= jsonencode({  
+       Version \= "2012-10-17",  
+       Statement \= \[{  
+         Action \= "sts:AssumeRole",  
+         Effect \= "Allow",  
+         Principal \= {  
+           Service \= "codedeploy.amazonaws.com"  
+         }  
+       }\]  
+     })  
+   }
+
+   resource "aws\_iam\_role\_policy\_attachment" "codedeploy\_policy" {  
+     role       \= aws\_iam\_role.codedeploy\_role.name  
+     policy\_arn \= "arn:aws:iam::aws:policy/AWSCodeDeployRoleForECS"  
+   }
+
+   \# CodeDeploy Application  
+   resource "aws\_codedeploy\_app" "strapi\_app" {  
+     compute\_platform \= "ECS"  
+     name             \= "strapi-codedeploy-app"  
+   }
+
+   \# CodeDeploy Deployment Group  
+   resource "aws\_codedeploy\_deployment\_group" "strapi\_dg" {  
+     app\_name               \= aws\_codedeploy\_app.strapi\_app.name  
+     deployment\_group\_name  \= "strapi-deployment-group"  
+     deployment\_config\_name \= "CodeDeployDefault.ECSCanary10Percent5Minutes"  
+     service\_role\_arn       \= aws\_iam\_role.codedeploy\_role.arn
+
+     ecs\_service {  
+       cluster\_name \= aws\_ecs\_cluster.strapi\_cluster.name  
+       service\_name \= aws\_ecs\_service.strapi\_service.name  
+     }
+
+     deployment\_style {  
+       deployment\_option \= "WITH\_TRAFFIC\_CONTROL"  
+       deployment\_type   \= "BLUE\_GREEN"  
+     }
+
+     auto\_rollback\_configuration {  
+       enabled \= true  
+       events  \= \["DEPLOYMENT\_FAILURE"\]  
+     }
+
+     blue\_green\_deployment\_config {  
+       deployment\_ready\_option {  
+         action\_on\_timeout \= "CONTINUE\_DEPLOYMENT"  
+       }  
+       terminate\_blue\_instances\_on\_deployment\_success {  
+         action                           \= "TERMINATE"  
+         termination\_wait\_time\_in\_minutes \= 5  
+       }  
+     }
+
+     load\_balancer\_info {  
+       target\_group\_pair\_info {  
+         prod\_traffic\_route {  
+           listener\_arns \= \[aws\_lb\_listener.strapi\_prod\_listener.arn\]  
+         }  
+         target\_group {  
+           name \= aws\_lb\_target\_group.strapi\_blue\_tg.name  
+         }  
+         target\_group {  
+           name \= aws\_lb\_target\_group.strapi\_green\_tg.name  
+         }  
+         test\_traffic\_route {  
+           listener\_arns \= \[aws\_lb\_listener.strapi\_test\_listener.arn\]  
+         }  
+       }  
+     }  
+   }
+
+4. Apply Terraform Changes  
+   Run terraform apply to create and update all the necessary resources for the blue/green setup.  
+   terraform init  
+   terraform plan  
+   terraform apply \--auto-approve
+
+## **✅ Task 11: Set up a GitHub Actions workflow to handle deployment**
+
+This workflow automates the blue/green deployment process by interacting with CodeDeploy.
+
+### **Steps**
+
+1. Create appspec.yml and taskdef.json files  
+   CodeDeploy needs an AppSpec file to understand how to deploy the ECS service. We also use a template for our task definition. Create these in your repository root.  
+   **appspec.yml**:  
+   version: 0.0  
+   Resources:  
+     \- TargetService:  
+         Type: AWS::ECS::Service  
+         Properties:  
+           TaskDefinition: "\<TASK\_DEFINITION\>"  
+           LoadBalancerInfo:  
+             ContainerName: "strapi"  
+             ContainerPort: 1337
+
+   **taskdef.json** (This is a template; the ECR image URI will be injected by the workflow):  
+   {  
+       "ipcMode": null,  
+       "executionRoleArn": "arn:aws:iam::\<AWS\_ACCOUNT\_ID\>:role/ecs\_task\_execution\_role",  
+       "containerDefinitions": \[  
+           {  
+               "name": "strapi",  
+               "image": "\<IMAGE1\_NAME\>",  
+               "essential": true,  
+               "portMappings": \[  
+                   {  
+                       "hostPort": 1337,  
+                       "protocol": "tcp",  
+                       "containerPort": 1337  
+                   }  
+               \],  
+               "logConfiguration": {  
+                   "logDriver": "awslogs",  
+                   "options": {  
+                       "awslogs-group": "/ecs/strapi",  
+                       "awslogs-region": "us-east-1",  
+                       "awslogs-stream-prefix": "ecs"  
+                   }  
+               }  
+           }  
+       \],  
+       "requiresCompatibilities": \[  
+           "FARGATE"  
+       \],  
+       "networkMode": "awsvpc",  
+       "cpu": "256",  
+       "memory": "512",  
+       "family": "strapi-task"  
+   }
+
+   *Note: Replace \<AWS\_ACCOUNT\_ID\> with your actual AWS Account ID in taskdef.json.*  
+2. Create the GitHub Actions Workflow  
+   Create a new workflow file at .github/workflows/deploy-blue-green.yml. This workflow builds the image, updates the task definition, and triggers CodeDeploy.  
+   name: CI/CD \- Blue/Green Deploy to ECS
+
+   on:  
+     push:  
+       branches:  
+         \- main
+
+   env:  
+     AWS\_REGION: us-east-1  
+     ECR\_REPOSITORY: strapi-app  
+     CODEDEPLOY\_APP\_NAME: strapi-codedeploy-app  
+     CODEDEPLOY\_DEPLOYMENT\_GROUP: strapi-deployment-group  
+     CONTAINER\_NAME: strapi
+
+   jobs:  
+     deploy:  
+       name: Build and Deploy  
+       runs-on: ubuntu-latest  
+       steps:  
+         \- name: Checkout code  
+           uses: actions/checkout@v3
+
+         \- name: Configure AWS Credentials  
+           uses: aws-actions/configure-aws-credentials@v2  
+           with:  
+             aws-access-key-id: ${{ secrets.AWS\_ACCESS\_KEY\_ID }}  
+             aws-secret-access-key: ${{ secrets.AWS\_SECRET\_ACCESS\_KEY }}  
+             aws-region: ${{ env.AWS\_REGION }}
+
+         \- name: Login to Amazon ECR  
+           id: login-ecr  
+           uses: aws-actions/amazon-ecr-login@v1
+
+         \- name: Build, tag, and push image to Amazon ECR  
+           id: build-image  
+           env:  
+             ECR\_REGISTRY: ${{ steps.login-ecr.outputs.registry }}  
+             IMAGE\_TAG: ${{ github.sha }}  
+           run: |  
+             docker build \-t $ECR\_REGISTRY/$ECR\_REPOSITORY:$IMAGE\_TAG .  
+             docker push $ECR\_REGISTRY/$ECR\_REPOSITORY:$IMAGE\_TAG  
+             echo "::set-output name=image::$ECR\_REGISTRY/$ECR\_REPOSITORY:$IMAGE\_TAG"
+
+         \- name: Create new task definition revision  
+           id: task-def  
+           run: |  
+             \# Read the taskdef.json template and replace the \<IMAGE1\_NAME\> placeholder  
+             TASK\_DEF\_TEMPLATE=$(cat taskdef.json)  
+             NEW\_TASK\_DEF\_CONTENT=$(echo "$TASK\_DEF\_TEMPLATE" | sed "s|\<IMAGE1\_NAME\>|${{ steps.build-image.outputs.image }}|g")
+
+             \# Register the new task definition with ECS  
+             NEW\_TASK\_INFO=$(aws ecs register-task-definition \--cli-input-json "$NEW\_TASK\_DEF\_CONTENT")
+
+             \# Extract the new task definition ARN  
+             NEW\_TASK\_DEF\_ARN=$(echo "$NEW\_TASK\_INFO" | jq \-r '.taskDefinition.taskDefinitionArn')  
+             echo "::set-output name=task\_def\_arn::$NEW\_TASK\_DEF\_ARN"
+
+         \- name: Create CodeDeploy Deployment  
+           id: deploy  
+           run: |  
+             \# Read the appspec.yml template and replace the \<TASK\_DEFINITION\> placeholder  
+             APPSPEC\_TEMPLATE=$(cat appspec.yml)  
+             NEW\_APPSPEC\_CONTENT=$(echo "$APPSPEC\_TEMPLATE" | sed "s|\<TASK\_DEFINITION\>|${{ steps.task-def.outputs.task\_def\_arn }}|g")
+
+             \# Trigger the deployment  
+             DEPLOYMENT\_ID=$(aws deploy create-deployment \\  
+               \--application-name ${{ env.CODEDEPLOY\_APP\_NAME }} \\  
+               \--deployment-group-name ${{ env.CODEDEPLOY\_DEPLOYMENT\_GROUP }} \\  
+               \--revision "{\\"revisionType\\":\\"AppSpecContent\\",\\"appSpecContent\\":{\\"content\\":\\"$NEW\_APPSPEC\_CONTENT\\"}}" \\  
+               \--query '\[deploymentId\]' \--output text)  
+             echo "::set-output name=deployment\_id::$DEPLOYMENT\_ID"
+
+         \- name: Monitor Deployment Status  
+           run: |  
+             echo "Waiting for deployment ${{ steps.deploy.outputs.deployment\_id }} to complete..."  
+             aws deploy wait deployment-successful \--deployment-id ${{ steps.deploy.outputs.deployment\_id }}  
+             echo "Deployment successful\!"
+
+### **How It Works**
+
+1. **Trigger**: The workflow runs on every push to the main branch.  
+2. **Build & Push**: It builds and pushes a new Docker image to ECR, tagged with the unique commit SHA.  
+3. **Update Task Definition**: It takes the taskdef.json template, injects the new ECR image URI, and registers a brand new task definition revision with ECS.  
+4. **Trigger CodeDeploy**: It then takes the appspec.yml template, injects the ARN of the new task definition, and uses the AWS CLI to create a new deployment in CodeDeploy.  
+5. **CodeDeploy Takes Over**: From here, CodeDeploy manages the entire blue/green process: it provisions new "green" tasks, runs health checks, and shifts traffic via the ALB listeners based on the ECSCanary10Percent5Minutes strategy.  
+6. **Monitor**: The final step in the workflow waits for the CodeDeploy deployment to report success. If CodeDeploy initiates a rollback due to failed health checks, this step will fail, causing the workflow to fail and alerting the team.
