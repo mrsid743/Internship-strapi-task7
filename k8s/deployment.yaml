@@ -1,0 +1,30 @@
+# deployment.yaml
+# This file defines the desired state for our application.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  # The name of our deployment
+  name: my-app-deployment
+spec:
+  # The number of pod replicas to maintain
+  replicas: 2
+  selector:
+    # This selector identifies which pods the deployment will manage.
+    # It must match the labels defined in the pod template.
+    matchLabels:
+      app: my-app
+  template:
+    # This is the template for the pods that will be created.
+    metadata:
+      labels:
+        # The label for the pods
+        app: my-app
+    spec:
+      containers:
+      - name: my-app-container
+        # The container image to use from Docker Hub
+        image: nginx:1.21.3
+        ports:
+        # The port that the container exposes
+        - containerPort: 80

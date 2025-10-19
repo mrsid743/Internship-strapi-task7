@@ -1,4 +1,3 @@
-[README.md](https://github.com/user-attachments/files/22798043/README.md)
 # **Strapi Internship Tasks: From Local Setup to Automated Deployment**
 
 [GitHub Repository](https://github.com/mrsid743/Internship-strapi-task7)
@@ -18,7 +17,13 @@ This repository documents the process of setting up, containerizing, deploying, 
 * [Task 8: Add CloudWatch Monitoring to ECS Deployment](https://www.google.com/search?q=%23-task-8-add-cloudwatch-monitoring-to-ecs-deployment)  
 * [Task 9: Optimize Costs with Fargate Spot](https://www.google.com/search?q=%23-task-9-optimize-costs-with-fargate-spot)  
 * [Task 10: Configure AWS Resources for Blue/Green Deployment](https://www.google.com/search?q=%23-task-10-configure-aws-resources-for-bluegreen-deployment)  
-* [Task 11: Set up a GitHub Actions Workflow for Blue/Green Deployment](https://www.google.com/search?q=%23-task-11-set-up-a-github-actions-workflow-for-bluegreen-deployment)
+* [Task 11: Set up a GitHub Actions Workflow for Blue/Green Deployment](https://www.google.com/search?q=%23-task-11-set-up-a-github-actions-workflow-for-bluegreen-deployment)  
+* [Task 12: Documentation: Docker Swarm: Architecture, AWS Setup, and Commands](https://www.google.com/search?q=%23-task-12-documentation-docker-swarm-architecture-aws-setup-and-commands)  
+* [Task 13: Documentation: Unleash Feature Flag Integration in a Local React Application](https://www.google.com/search?q=%23-task-13-documentation-unleash-feature-flag-integration-in-a-local-react-application)  
+* [Task 14: Documentation: Reducing Docker Image Size: A Guide to Faster Deployments and Lower Costs](https://www.google.com/search?q=%23-task-14-documentation-reducing-docker-image-size-a-guide-to-faster-deployments-and-lower-costs)  
+* [Task 15: Documentation: A Comprehensive Analysis of the Kubernetes Orchestration Platform](https://www.google.com/search?q=%23-task-15-documentation-a-comprehensive-analysis-of-the-kubernetes-orchestration-platform)  
+* [Task 16: Build a Kubernetes Cluster Locally with Minikube](https://www.google.com/search?q=%23-task-16-build-a-kubernetes-cluster-locally-with-minikube)  
+* [Task 17: Resource Monitoring, Alerting, and Log Management Automation](https://www.google.com/search?q=%23-task-17-resource-monitoring-alerting-and-log-management-automation)
 
 ## **🛠️ Prerequisites**
 
@@ -705,7 +710,7 @@ jobs:
           docker build \-t $ECR\_REGISTRY/$ECR\_REPOSITORY:$IMAGE\_TAG .  
           docker push $ECR\_REGISTRY/$ECR\_REPOSITORY:$IMAGE\_TAG  
           \# Set the image URI as an output for the next step  
-          echo "::set-output name=image::$ECR\_REGISTRY/$ECR\_REPOSITORY:$IMAGE\_TAG"
+          echo "image=$ECR\_REGISTRY/$ECR\_REPOSITORY:$IMAGE\_TAG" \>\> $GITHUB\_OUTPUT
 
       \- name: Download current task definition  
         run: |  
@@ -1197,7 +1202,7 @@ This workflow automates the blue/green deployment process by interacting with Co
            run: |  
              docker build \-t $ECR\_REGISTRY/$ECR\_REPOSITORY:$IMAGE\_TAG .  
              docker push $ECR\_REGISTRY/$ECR\_REPOSITORY:$IMAGE\_TAG  
-             echo "::set-output name=image::$ECR\_REGISTRY/$ECR\_REPOSITORY:$IMAGE\_TAG"
+             echo "image=$ECR\_REGISTRY/$ECR\_REPOSITORY:$IMAGE\_TAG" \>\> $GITHUB\_OUTPUT
 
          \- name: Create new task definition revision  
            id: task-def  
@@ -1211,7 +1216,7 @@ This workflow automates the blue/green deployment process by interacting with Co
 
              \# Extract the new task definition ARN  
              NEW\_TASK\_DEF\_ARN=$(echo "$NEW\_TASK\_INFO" | jq \-r '.taskDefinition.taskDefinitionArn')  
-             echo "::set-output name=task\_def\_arn::$NEW\_TASK\_DEF\_ARN"
+             echo "task\_def\_arn=$NEW\_TASK\_DEF\_ARN" \>\> $GITHUB\_OUTPUT
 
          \- name: Create CodeDeploy Deployment  
            id: deploy  
@@ -1226,7 +1231,7 @@ This workflow automates the blue/green deployment process by interacting with Co
                \--deployment-group-name ${{ env.CODEDEPLOY\_DEPLOYMENT\_GROUP }} \\  
                \--revision "{\\"revisionType\\":\\"AppSpecContent\\",\\"appSpecContent\\":{\\"content\\":\\"$NEW\_APPSPEC\_CONTENT\\"}}" \\  
                \--query '\[deploymentId\]' \--output text)  
-             echo "::set-output name=deployment\_id::$DEPLOYMENT\_ID"
+             echo "deployment\_id=$DEPLOYMENT\_ID" \>\> $GITHUB\_OUTPUT
 
          \- name: Monitor Deployment Status  
            run: |  
@@ -1242,3 +1247,316 @@ This workflow automates the blue/green deployment process by interacting with Co
 4. **Trigger CodeDeploy**: It then takes the appspec.yml template, injects the ARN of the new task definition, and uses the AWS CLI to create a new deployment in CodeDeploy.  
 5. **CodeDeploy Takes Over**: From here, CodeDeploy manages the entire blue/green process: it provisions new "green" tasks, runs health checks, and shifts traffic via the ALB listeners based on the ECSCanary10Percent5Minutes strategy.  
 6. **Monitor**: The final step in the workflow waits for the CodeDeploy deployment to report success. If CodeDeploy initiates a rollback due to failed health checks, this step will fail, causing the workflow to fail and alerting the team.
+
+## **✅ Task 16: Build a Kubernetes Cluster Locally with Minikube**
+
+**Objective**: Get hands-on experience with Kubernetes by deploying, managing, and scaling a sample application on a local cluster.
+
+### **Prerequisites**
+
+* **Docker**: Minikube runs a Kubernetes cluster inside a Docker container.  
+* **Minikube**: [Install Minikube](https://minikube.sigs.k8s.io/docs/start/) for your operating system.  
+* **kubectl**: [Install kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl-linux/), the Kubernetes command-line tool.
+
+### **Steps**
+
+1. Start Your Local Cluster  
+   Open your terminal and run the minikube start command. This will download the necessary images and start a single-node Kubernetes cluster.  
+   minikube start
+
+2. Create a Deployment Manifest  
+   A Deployment tells Kubernetes how to create and update instances of your application. Create a file named deployment.yaml. For this example, we'll use a simple Nginx web server.  
+   \# deployment.yaml  
+   apiVersion: apps/v1  
+   kind: Deployment  
+   metadata:  
+     name: nginx-deployment  
+   spec:  
+     replicas: 2 \# Start with 2 instances of our application  
+     selector:  
+       matchLabels:  
+         app: nginx  
+     template:  
+       metadata:  
+         labels:  
+           app: nginx  
+       spec:  
+         containers:  
+         \- name: nginx  
+           image: nginx:1.25 \# Use a specific version of the public Nginx image  
+           ports:  
+           \- containerPort: 80
+
+3. Create a Service Manifest  
+   A Service exposes your application to be accessible. We'll use the NodePort type, which makes the service accessible on a specific port on the Minikube node's IP. Create a file named service.yaml.  
+   \# service.yaml  
+   apiVersion: v1  
+   kind: Service  
+   metadata:  
+     name: nginx-service  
+   spec:  
+     selector:  
+       app: nginx  
+     type: NodePort \# Exposes the service on the node's IP at a static port  
+     ports:  
+       \- protocol: TCP  
+         port: 80       \# Port for other services inside the cluster to use  
+         targetPort: 80 \# Port on the pod that the service forwards traffic to
+
+4. Apply Manifests and Verify the Deployment  
+   Use kubectl apply to send the configurations to your cluster.  
+   kubectl apply \-f deployment.yaml  
+   kubectl apply \-f service.yaml
+
+   Now, check the status of your Pods and Service.  
+   \# Check that the pods are running  
+   kubectl get pods
+
+   \# Check that the service is created  
+   kubectl get services
+
+   You should see your two Nginx pods in a "Running" state.  
+5. Access Your Application  
+   Minikube provides a handy command to get the URL for your service.  
+   minikube service nginx-service
+
+   This will automatically open the Nginx welcome page in your default web browser.  
+6. Scale Your Application  
+   You can easily scale the number of pods in your deployment up or down. Let's scale up to 4 replicas.  
+   \# Scale the deployment to 4 replicas  
+   kubectl scale deployment nginx-deployment \--replicas=4
+
+   \# Verify that you now have 4 pods running  
+   kubectl get pods
+
+7. Inspect and Debug  
+   If something goes wrong, you can inspect your resources and view logs.  
+   \# Get detailed information about a pod (replace \<pod-name\> with a real pod name)  
+   kubectl describe pod \<pod-name\>
+
+   \# View the logs from a specific pod  
+   kubectl logs \<pod-name\>
+
+### **Outcome**
+
+By completing this task, you will have a fundamental understanding of core Kubernetes concepts like Deployments, Pods, and Services, and you'll be comfortable using kubectl to manage applications in a cluster.
+
+## **✅ Task 17: Resource Monitoring, Alerting, and Log Management Automation**
+
+**Objective**: Develop automated Bash scripts to monitor system health and manage log files, ensuring system reliability and maintainability.
+
+### **Part 1: Resource Monitoring & Alert System**
+
+**Goal**: Create a Bash script that monitors key system resources (CPU, RAM, disk, load) and sends an email alert when any predefined threshold is breached.
+
+#### **Prerequisites**
+
+* A Linux-based system.  
+* A configured mail client like mailx or sendmail. To install on Debian/Ubuntu: sudo apt-get install mailutils.
+
+#### **Steps**
+
+1. Create the Monitoring Script  
+   Create a file named resource\_monitor.sh and add the following code. This script captures usage data, compares it against set thresholds, and sends a formatted email if any threshold is exceeded.  
+   \#\!/bin/bash
+
+   \# \--- Configuration \---  
+   \# Email settings  
+   RECIPIENT\_EMAIL="your-email@example.com"  
+   EMAIL\_SUBJECT="CRITICAL: System Resource Alert on $(hostname)"
+
+   \# Thresholds (in percentage, except for load average)  
+   CPU\_THRESHOLD=80  
+   MEM\_THRESHOLD=75  
+   DISK\_THRESHOLD=85  
+   LOAD\_AVG\_THRESHOLD=5.0
+
+   \# \--- Data Collection \---  
+   \# Get current timestamp  
+   TIMESTAMP=$(date "+%Y-%m-%d %H:%M:%S")
+
+   \# Get CPU usage (percentage of non-idle time)  
+   CPU\_USAGE=$(top \-bn1 | grep "Cpu(s)" | sed "s/.\*, \*\\(\[0-9.\]\*\\)%\* id.\*/\\1/" | awk '{print 100 \- $1}')
+
+   \# Get Memory usage  
+   MEM\_FREE=$(free \-m | awk 'NR==2{printf "%.2f", $3\*100/$2 }')
+
+   \# Get Disk usage for the root partition ('/')  
+   DISK\_USAGE=$(df \-h / | awk 'NR==2{print $5}' | sed 's/%//')
+
+   \# Get 1-minute load average  
+   LOAD\_AVG=$(uptime | awk \-F'load average:' '{print $2}' | cut \-d, \-f1 | xargs)
+
+   \# \--- Alert Logic \---  
+   ALERT\_MESSAGE=""
+
+   \# Check if CPU usage exceeds the threshold  
+   if (( $(echo "$CPU\_USAGE \> $CPU\_THRESHOLD" | bc \-l) )); then  
+       ALERT\_MESSAGE+="CPU Usage is at ${CPU\_USAGE}%, which exceeds the threshold of ${CPU\_THRESHOLD}%.\\n"  
+   fi
+
+   \# Check if Memory usage exceeds the threshold  
+   if (( $(echo "$MEM\_FREE \> $MEM\_THRESHOLD" | bc \-l) )); then  
+       ALERT\_MESSAGE+="Memory Usage is at ${MEM\_FREE}%, which exceeds the threshold of ${MEM\_THRESHOLD}%.\\n"  
+   fi
+
+   \# Check if Disk usage exceeds the threshold  
+   if \[ "$DISK\_USAGE" \-gt "$DISK\_THRESHOLD" \]; then  
+       ALERT\_MESSAGE+="Disk Usage is at ${DISK\_USAGE}%, which exceeds the threshold of ${DISK\_THRESHOLD}%.\\n"  
+   fi
+
+   \# Check if Load Average exceeds the threshold  
+   if (( $(echo "$LOAD\_AVG \> $LOAD\_AVG\_THRESHOLD" | bc \-l) )); then  
+       ALERT\_MESSAGE+="System Load Average is ${LOAD\_AVG}, which exceeds the threshold of ${LOAD\_AVG\_THRESHOLD}.\\n"  
+   fi
+
+   \# \--- Send Email Alert \---  
+   \# If any alert message was generated, send the email  
+   if \[ \-n "$ALERT\_MESSAGE" \]; then  
+       \# Construct the email body  
+       EMAIL\_BODY=$(cat \<\<EOF  
+   System Resource Alert  
+   \---------------------------------  
+   Hostname: $(hostname)  
+   Timestamp: $TIMESTAMP
+
+   The following resource thresholds have been breached:
+
+   $ALERT\_MESSAGE
+
+   \--- Current System Status \---  
+   CPU Usage: ${CPU\_USAGE}%  
+   Memory Usage: ${MEM\_FREE}%  
+   Disk Usage: ${DISK\_USAGE}%  
+   System Load Average: $LOAD\_AVG  
+   EOF  
+       )
+
+       \# Send the email  
+       echo \-e "$EMAIL\_BODY" | mailx \-s "$EMAIL\_SUBJECT" "$RECIPIENT\_EMAIL"  
+       echo "Alert email sent to $RECIPIENT\_EMAIL"  
+   fi
+
+   echo "Resource check completed at $TIMESTAMP"
+
+2. **Make the Script Executable**  
+   chmod \+x resource\_monitor.sh
+
+3. Schedule with a Cron Job  
+   To run the script automatically every 10 minutes, open your crontab editor:  
+   crontab \-e
+
+   Then, add the following line (make sure to use the full path to your script):  
+   \*/10 \* \* \* \* /path/to/your/resource\_monitor.sh
+
+#### **Deliverables**
+
+* **Bash script**: resource\_monitor.sh (as provided above).  
+* **Sample Email Output**:  
+  Subject: CRITICAL: System Resource Alert on my-server
+
+  System Resource Alert  
+  \---------------------------------  
+  Hostname: my-server  
+  Timestamp: 2025-10-26 19:30:01
+
+  The following resource thresholds have been breached:
+
+  CPU Usage is at 85.5%, which exceeds the threshold of 80%.  
+  Disk Usage is at 91%, which exceeds the threshold of 85%.
+
+  \--- Current System Status \---  
+  CPU Usage: 85.5%  
+  Memory Usage: 65.2%  
+  Disk Usage: 91%  
+  System Load Average: 3.45
+
+* **Cron Job Snippet**: \*/10 \* \* \* \* /path/to/your/resource\_monitor.sh
+
+### **Part 2: Log Management and Backup**
+
+**Goal**: Automate the backup of logs older than 7 days, compress them, and then safely delete the originals to manage disk space.
+
+#### **Steps**
+
+1. Create the Log Management Script  
+   Create a file named log\_manager.sh. This script will find, compress, move, and delete old log files, while keeping a record of its actions.  
+   \#\!/bin/bash
+
+   \# \--- Configuration \---  
+   \# Directories (ensure these exist before running)  
+   LOG\_DIR="/var/logs/checkins"  
+   BACKUP\_DIR="/backup/logs"
+
+   \# Retention period (in days)  
+   RETENTION\_DAYS=7
+
+   \# Log file for this script's actions  
+   ACTION\_LOG="/var/log/log\_manager\_actions.log"
+
+   \# \--- Script Logic \---  
+   TIMESTAMP=$(date "+%Y-%m-%d %H:%M:%S")
+
+   \# Log script start  
+   echo "\[$TIMESTAMP\] Starting log management script..." \>\> "$ACTION\_LOG"
+
+   \# Ensure directories exist  
+   mkdir \-p "$LOG\_DIR"  
+   mkdir \-p "$BACKUP\_DIR"
+
+   \# Find log files older than RETENTION\_DAYS  
+   OLD\_LOGS=$(find "$LOG\_DIR" \-type f \-name "\*.log" \-mtime \+"$RETENTION\_DAYS")
+
+   if \[ \-z "$OLD\_LOGS" \]; then  
+       echo "\[$TIMESTAMP\] No logs older than $RETENTION\_DAYS days found. Exiting." \>\> "$ACTION\_LOG"  
+       exit 0  
+   fi
+
+   \# Create a dated backup archive  
+   BACKUP\_FILENAME="logs\_backup\_$(date "+%Y-%m-%d\_%H%M%S").tar.gz"  
+   BACKUP\_PATH="$BACKUP\_DIR/$BACKUP\_FILENAME"
+
+   echo "\[$TIMESTAMP\] Found old logs. Creating backup archive: $BACKUP\_PATH" \>\> "$ACTION\_LOG"
+
+   \# Compress the old logs into the backup directory  
+   tar \-czvf "$BACKUP\_PATH" $OLD\_LOGS
+
+   \# Verify that the backup was created successfully  
+   if \[ $? \-eq 0 \]; then  
+       echo "\[$TIMESTAMP\] Backup successful. Removing original log files." \>\> "$ACTION\_LOG"  
+       \# Delete the original files  
+       echo "$OLD\_LOGS" | xargs rm \-f  
+       if \[ $? \-eq 0 \]; then  
+           echo "\[$TIMESTAMP\] Successfully removed old log files." \>\> "$ACTION\_LOG"  
+       else  
+           echo "\[$TIMESTAMP\] ERROR: Failed to remove old log files." \>\> "$ACTION\_LOG"  
+       fi  
+   else  
+       echo "\[$TIMESTAMP\] ERROR: Backup failed. Original log files were not removed." \>\> "$ACTION\_LOG"  
+   fi
+
+   echo "\[$TIMESTAMP\] Log management script finished." \>\> "$ACTION\_LOG"  
+   echo "-------------------------------------------" \>\> "$ACTION\_LOG"
+
+2. **Make the Script Executable**  
+   chmod \+x log\_manager.sh
+
+3. Schedule with a Cron Job  
+   To run this script daily at 2:00 AM, edit your crontab:  
+   crontab \-e
+
+   Add the following line:  
+   0 2 \* \* \* /path/to/your/log\_manager.sh
+
+#### **Deliverables**
+
+* **Bash script**: log\_manager.sh (as provided above).  
+* **Sample Action Log Output** (/var/log/log\_manager\_actions.log):  
+  \[2025-10-26 02:00:01\] Starting log management script...  
+  \[2025-10-26 02:00:01\] Found old logs. Creating backup archive: /backup/logs/logs\_backup\_2025-10-26\_020001.tar.gz  
+  \[2025-10-26 02:00:05\] Backup successful. Removing original log files.  
+  \[2025-10-26 02:00:05\] Successfully removed old log files.  
+  \[2025-10-26 02:00:05\] Log management script finished.  
+  \-------------------------------------------
+
+* **Cron Job Snippet**: 0 2 \* \* \* /path/to/your/log\_manager.sh

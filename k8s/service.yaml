@@ -1,0 +1,23 @@
+# service.yaml
+# This file defines how we expose our application to be accessible.
+
+apiVersion: v1
+kind: Service
+metadata:
+  # The name of our service
+  name: my-app-service
+spec:
+  # This specifies the type of service. NodePort exposes the service on each Node's IP at a static port.
+  type: NodePort
+  ports:
+    # The port that the service will listen on
+    - port: 80
+      # The port on the pod that the service will forward traffic to
+      targetPort: 80
+      # The static port on the Node where the service is exposed.
+      # If not specified, a random port in the range 30000-32767 is assigned.
+      nodePort: 30007
+  selector:
+    # This selector finds the pods to route traffic to.
+    # It must match the labels of the pods defined in our deployment.
+    app: my-app
